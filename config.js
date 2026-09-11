@@ -2,13 +2,12 @@
 // Wolfie's Watch — site config
 // ---------------------------------------------------------------------
 
-// Shared schedule storage (jsonblob.com — free, no login required).
-// On the very FIRST visit to the deployed site (with this left blank),
-// the app automatically creates a new shared blob and shows a banner
-// with its ID. Copy that ID in here and commit so every friend's
-// browser reads/writes the SAME schedule instead of each creating a
-// new one.
-window.BLOB_ID = "";
+// Shared schedule storage (Firebase Realtime Database — free tier, no
+// login required for visitors). Paste in your database's URL here
+// (e.g. "https://wolfies-watch-default-rtdb.firebaseio.com") and
+// commit, so every friend's browser reads/writes the SAME schedule.
+// See README.md for one-time Firebase setup steps.
+window.FIREBASE_DB_URL = "";
 
 // The days Wolfie needs a sitter. Edit these if the trip dates change.
 window.TRIP_DAYS = [

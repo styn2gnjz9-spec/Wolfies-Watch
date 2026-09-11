@@ -21,33 +21,43 @@ No login required — just share the site link.
 
 ## 2. Finish the one-time shared-schedule setup
 
-The schedule is stored in a free, no-login JSON storage service
-([jsonblob.com](https://jsonblob.com)) so everyone's phone/computer reads and
-writes the same list.
+The schedule is stored in a free Firebase Realtime Database so everyone's
+phone/computer reads and writes the same list. This is a one-time setup for
+the site owner only — friends just open the link.
 
-1. Open the deployed site **yourself, first**, before sending the link to
-   anyone else.
-2. You'll see a pink **"ONE-TIME SETUP"** banner at the top with a Blob ID.
-3. Copy that ID.
-4. Edit `config.js` in this repo, and paste it in:
-   ```js
-   window.BLOB_ID = "paste-the-id-here";
+1. Go to [console.firebase.google.com](https://console.firebase.google.com),
+   sign in with any Google account, and click **Add project** (any name is
+   fine — skip Google Analytics if asked).
+2. In the left sidebar: **Build → Realtime Database → Create Database**.
+   Pick any location, then choose **"Start in test mode"**.
+3. Open the **Rules** tab (top of the Realtime Database page) and replace
+   the contents with:
+   ```json
+   {
+     "rules": {
+       ".read": true,
+       ".write": true
+     }
+   }
    ```
-5. Commit the change (you can do this right in the GitHub web editor).
-6. Reload the site — the banner should be gone. Now share the link with
-   your friends; everyone will see and edit the same schedule.
+   Click **Publish**.
+4. Back on the **Data** tab, copy the database URL shown at the top
+   (looks like `https://wolfies-watch-default-rtdb.firebaseio.com`).
+5. Edit `config.js` in this repo, and paste it in:
+   ```js
+   window.FIREBASE_DB_URL = "https://your-project-default-rtdb.firebaseio.com";
+   ```
+6. Commit the change (you can do this right in the GitHub web editor).
+7. Reload the deployed site to confirm the schedule loads with no error.
+   Now share the link with your friends; everyone will see and edit the
+   same schedule.
 
 > Heads up: because there's no login, anyone with the link can add or
-> cancel quests. That's fine for a small trusted friend group, but don't
-> post the link publicly.
-
-**If the setup banner never appears** (or the schedule shows a "couldn't
-load" error), set up the blob manually instead:
-1. Go to [jsonblob.com](https://jsonblob.com), paste `{"watchBlocks": []}`
-   into the editor, and save.
-2. The resulting page URL looks like `https://jsonblob.com/<some-id>` —
-   copy that ID.
-3. Paste it into `config.js` as shown above.
+> cancel quests, and the database rules above are fully public (anyone who
+> discovers the database URL could read/write it directly, not just through
+> the site). That's fine for a small trusted friend group and a short trip,
+> but don't post the link publicly and consider tightening or deleting the
+> database afterward.
 
 ## 3. Customize it
 

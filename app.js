@@ -1,16 +1,18 @@
 (() => {
   "use strict";
 
-  const JSONBLOB_BASE = "https://jsonblob.com/api/jsonBlob";
-  const LOCAL_FALLBACK_KEY = "wolfies_watch_blob_id";
   const REFRESH_MS = 15000;
+
+  // Firebase Realtime Database REST API. A trailing slash is optional in
+  // config.js; strip it here so URL-building below is consistent.
+  const FIREBASE_URL = (window.FIREBASE_DB_URL || "").trim().replace(/\/+$/, "");
+  const BLOCKS_URL = FIREBASE_URL ? `${FIREBASE_URL}/watchBlocks.json` : "";
 
   const activityByValue = Object.fromEntries(
     window.ACTIVITY_TYPES.map((a) => [a.value, a])
   );
 
   let blockCache = [];
-  let blobUrl = "";
 
   // ---------------------------------------------------------------
   // Setup / images
@@ -21,90 +23,22 @@
     document.getElementById("apple-icon").href = window.WOLFIE_ICON_192;
   }
 
-  function showSetupBanner(id) {
-    const banner = document.getElementById("setup-banner");
-    const display = document.getElementById("blob-id-display");
-    display.textContent = id;
-    banner.hidden = false;
-    document.getElementById("copy-blob-id").onclick = () => {
-      navigator.clipboard?.writeText(id).catch(() => {});
-    };
-    banner.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  // Manually creates (or looks up) the shared schedule ID on demand, so
-  // setup never depends solely on the silent auto-run at page load.
-  async function runManualSetup() {
-    const btn = document.getElementById("manual-setup-btn");
-    const status = document.getElementById("manual-setup-status");
-    btn.disabled = true;
-    btn.textContent = "WORKING…";
-    status.textContent = "";
-    try {
-      let id = (window.BLOB_ID && window.BLOB_ID.trim()) || localStorage.getItem(LOCAL_FALLBACK_KEY);
-      if (!id) {
-        const res = await fetch(JSONBLOB_BASE, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=UTF-8" },
-          body: JSON.stringify({ watchBlocks: [] }),
-        });
-        if (!res.ok) throw new Error(`jsonblob.com returned an error (status ${res.status}).`);
-        const location = res.headers.get("Location") || "";
-        id = location.split("/").filter(Boolean).pop();
-        if (!id) throw new Error("Created the storage, but couldn't read its ID back from the response.");
-        localStorage.setItem(LOCAL_FALLBACK_KEY, id);
-      }
-      showSetupBanner(id);
-      status.textContent = "✅ Scroll up — your Blob ID is shown above.";
-    } catch (err) {
-      status.textContent = `⚠️ ${err.message} (open the browser console for details)`;
-      console.error(err);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "🔧 GET SHARED SCHEDULE ID";
-    }
-  }
-
-  async function resolveBlobUrl() {
-    if (window.BLOB_ID && window.BLOB_ID.trim()) {
-      return `${JSONBLOB_BASE}/${window.BLOB_ID.trim()}`;
-    }
-
-    const cached = localStorage.getItem(LOCAL_FALLBACK_KEY);
-    if (cached) {
-      showSetupBanner(cached);
-      return `${JSONBLOB_BASE}/${cached}`;
-    }
-
-    const res = await fetch(JSONBLOB_BASE, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=UTF-8" },
-      body: JSON.stringify({ watchBlocks: [] }),
-    });
-    if (!res.ok) throw new Error("Could not create shared schedule storage.");
-    const location = res.headers.get("Location") || "";
-    const id = location.split("/").filter(Boolean).pop();
-    if (!id) throw new Error("Unexpected response creating shared storage.");
-    localStorage.setItem(LOCAL_FALLBACK_KEY, id);
-    showSetupBanner(id);
-    return `${JSONBLOB_BASE}/${id}`;
-  }
-
   // ---------------------------------------------------------------
   // Data
   // ---------------------------------------------------------------
   async function loadBlocks() {
-    const res = await fetch(blobUrl, { cache: "no-store" });
+    const res = await fetch(BLOCKS_URL, { cache: "no-store" });
     if (!res.ok) throw new Error("Could not load the schedule.");
     const data = await res.json();
-    return Array.isArray(data.watchBlocks) ? data.watchBlocks : [];
+    // Firebase returns null for a path with no data yet (fresh database).
+    return Array.isArray(data) ? data : [];
   }
 
   async function saveBlocks(blocks) {
-    const res = await fetch(blobUrl, {
+    const res = await fetch(BLOCKS_URL, {
       method: "PUT",
-      headers: { "Content-Type": "text/plain;charset=UTF-8" },
-      body: JSON.stringify({ watchBlocks: blocks }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(blocks),
     });
     if (!res.ok) throw new Error("Could not save the schedule.");
   }
@@ -307,13 +241,9 @@
 
     document.getElementById("shift-form").addEventListener("submit", handleSubmit);
     document.getElementById("refresh-btn").addEventListener("click", () => refresh(true));
-    document.getElementById("manual-setup-btn").addEventListener("click", runManualSetup);
 
-    try {
-      blobUrl = await resolveBlobUrl();
-    } catch (err) {
-      setStatus("⚠️ Couldn't set up shared storage. Reload to try again.");
-      console.error(err);
+    if (!BLOCKS_URL) {
+      setStatus("⚠️ Shared schedule isn't configured yet — set window.FIREBASE_DB_URL in config.js.");
       return;
     }
 
