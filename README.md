@@ -68,8 +68,9 @@ Everything editable lives in `config.js`:
 - `MEAL_MENU` — Wolfie's actual meal times/amounts. The defaults are
   placeholders — edit them to match his real routine!
 
-Wolfie's face image is baked into `wolfie-assets.js` as the app icon/avatar
-— no need to touch that file.
+The Sheriff Wolfie badge logo lives in `hero-logo.png` (hero image) and
+`icon-192-v2.png` / `icon-512-v2.png` / `favicon-32-v2.png` (app icons) —
+swap in new files at those same names to change it.
 
 ## Local preview
 
