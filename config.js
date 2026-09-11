@@ -7,7 +7,7 @@
 // (e.g. "https://wolfies-watch-default-rtdb.firebaseio.com") and
 // commit, so every friend's browser reads/writes the SAME schedule.
 // See README.md for one-time Firebase setup steps.
-window.FIREBASE_DB_URL = "";
+window.FIREBASE_DB_URL = "https://wolfie-s-watch-default-rtdb.firebaseio.com";
 
 // The days Wolfie needs a sitter. Edit these if the trip dates change.
 window.TRIP_DAYS = [
