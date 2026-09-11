@@ -25,6 +25,35 @@
   <div class="sparkle s2">✦</div>
 </div>
 
+<div id="install-modal" class="install-modal-backdrop" hidden>
+  <div class="install-modal">
+    <button type="button" id="install-modal-x" class="install-modal-x" aria-label="Close">✕</button>
+    <img src="icon-192-v2.png" alt="" class="install-modal-icon" />
+    <h2>📲 Make It an App!</h2>
+    <p>Add Wolfie's Watch to your home screen for one-tap access — no browser bar in the way.</p>
+
+    <div class="install-tabs">
+      <button type="button" class="install-tab" data-platform="ios">🍎 iPhone / iPad</button>
+      <button type="button" class="install-tab" data-platform="android">🤖 Android</button>
+    </div>
+
+    <ol id="install-steps-ios" class="install-steps" hidden>
+      <li>Tap the <strong>Share</strong> button (the square with an arrow ⬆️) in Safari's toolbar.</li>
+      <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+      <li>Tap <strong>Add</strong> in the top right.</li>
+    </ol>
+
+    <ol id="install-steps-android" class="install-steps" hidden>
+      <li>Tap the <strong>⋮</strong> menu in Chrome (top right corner).</li>
+      <li>Tap <strong>Add to Home screen</strong> (or <strong>Install app</strong>, if you see it).</li>
+      <li>Tap <strong>Add</strong> / <strong>Install</strong> to confirm.</li>
+    </ol>
+
+    <button type="button" id="install-modal-dismiss" class="btn-primary">Got It, Deputy!</button>
+    <button type="button" id="install-modal-later" class="install-later">Maybe later</button>
+  </div>
+</div>
+
 <div class="app-toolbar">
   <button type="button" id="app-refresh-btn" class="toolbar-btn" title="Refresh app" aria-label="Refresh app">⟳</button>
   <button type="button" id="app-close-btn" class="toolbar-btn" title="Close" aria-label="Close">✕</button>
