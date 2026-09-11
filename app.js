@@ -154,11 +154,26 @@
 
     const trackHeight = ((maxMin - minMin) / 60) * CHART_PX_PER_HOUR;
 
-    let hourLabels = "";
-    for (let m = minMin; m <= maxMin; m += 60) {
-      const top = ((m - minMin) / 60) * CHART_PX_PER_HOUR;
-      hourLabels += `<div class="chart-hour-label" style="top:${top}px">${formatTime(minutesToTime(m))}</div>`;
-    }
+    const landmarks = [
+      { minutes: 8 * 60, label: "MORNING" },
+      { minutes: 12 * 60, label: "NOON" },
+      { minutes: 20 * 60, label: "NIGHT" },
+    ].filter((lm) => lm.minutes >= minMin && lm.minutes <= maxMin);
+    // Fall back to the range's own start/end if none of the fixed
+    // landmarks land inside an unusually narrow time range.
+    const shownLandmarks = landmarks.length
+      ? landmarks
+      : [
+          { minutes: minMin, label: formatTime(minutesToTime(minMin)) },
+          { minutes: maxMin, label: formatTime(minutesToTime(maxMin)) },
+        ];
+
+    const hourLabels = shownLandmarks
+      .map((lm) => {
+        const top = ((lm.minutes - minMin) / 60) * CHART_PX_PER_HOUR;
+        return `<div class="chart-hour-label" style="top:${top}px">${lm.label}</div>`;
+      })
+      .join("");
     hoursEl.style.height = `${trackHeight}px`;
     hoursEl.innerHTML = hourLabels;
 
