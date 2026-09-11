@@ -36,24 +36,24 @@ window.MEAL_MENU = [
     course: "Breakfast Buffet",
     time: "~7:00–8:00 AM",
     items: ["1 cup kibble", "splash of water refresh"],
-    icon: "🌅",
+    icon: "🥣",
   },
   {
     course: "Midday Snack",
     time: "~12:00 PM (long days only)",
     items: ["a few training treats", "water bowl check"],
-    icon: "☀️",
+    icon: "🦴",
   },
   {
     course: "Dinner Feast",
     time: "~5:30–6:30 PM",
     items: ["1 cup kibble", "fresh water"],
-    icon: "🌙",
+    icon: "🍖",
   },
   {
     course: "Dessert Round",
     time: "after walks / good behavior",
     items: ["1–2 small treats", "no table scraps, please!"],
-    icon: "🎖️",
+    icon: "🍬",
   },
 ];
