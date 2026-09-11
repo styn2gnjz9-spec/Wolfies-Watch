@@ -509,6 +509,78 @@ button:active {
   min-width: 160px;
 }
 
+/* --- week-at-a-glance chart --- */
+.chart-wrap {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.chart-hours {
+  flex: none;
+  width: 46px;
+  position: relative;
+}
+
+.chart-hour-label {
+  position: absolute;
+  right: 4px;
+  transform: translateY(-50%);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.chart-days {
+  flex: 1;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(84px, 1fr);
+  gap: 6px;
+  min-width: 540px;
+}
+
+.chart-day-col-label {
+  text-align: center;
+  font-family: "Fredoka", sans-serif;
+  font-weight: 700;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: var(--wolfie-copper-dark);
+  margin-bottom: 6px;
+}
+
+.chart-track {
+  position: relative;
+  background: var(--wolfie-cream);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 25px,
+    rgba(36, 26, 16, 0.1) 25px,
+    rgba(36, 26, 16, 0.1) 26px
+  );
+}
+
+.chart-bar {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  border: 1.5px solid var(--ink);
+  border-radius: 5px;
+  background: var(--wolfie-copper);
+  color: var(--wolfie-white);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 2px 4px;
+  overflow: hidden;
+}
+
 /* --- power-up shop (meals) --- */
 .menu-intro {
   color: var(--text-muted);

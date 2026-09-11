@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Wolfie's Watch</title>
 <meta name="description" content="A wild-west co-op schedule for keeping Sheriff Wolfie fed, walked, and watched while John's out of town." />
 <link rel="manifest" href="manifest.json" />
@@ -95,9 +95,18 @@
     <div id="board" class="board"></div>
   </section>
 
+  <section class="panel" id="chart-view">
+    <h2>📊 Week at a Glance</h2>
+    <p class="menu-intro">All six days, side by side — scroll sideways to see the whole week.</p>
+    <div class="chart-wrap">
+      <div id="chart-hours" class="chart-hours"></div>
+      <div id="chart-days" class="chart-days"></div>
+    </div>
+  </section>
+
   <section class="panel" id="menu">
     <h2>🍖 Wolfie's Chuck Wagon Menu</h2>
-    <p class="menu-intro">Grub stops along the trail — keeps a good deputy fed!</p>
+    <p class="menu-intro">Grub stops along the trail — keeps the sheriff fed and happy!</p>
     <div id="menu-list" class="menu-list"></div>
   </section>
 </main>

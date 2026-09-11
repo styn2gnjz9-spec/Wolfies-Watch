@@ -2,6 +2,7 @@
   "use strict";
 
   const REFRESH_MS = 15000;
+  const CHART_PX_PER_HOUR = 26;
 
   const BOOT_ICON =
     '<svg class="icon-inline" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><path d="M46 2 L68 2 C74 2 77 6 77 12 L77 46 C77 53 82 57 89 61 C96 65 98 70 98 77 L98 85 C98 90 94 94 89 94 L23 94 C16 94 8 92 3 87 C-1 83 1 77 7 75 L20 71 C30 68 38 63 41 55 L42 12 C42 6 43 2 46 2 Z"/></svg>';
@@ -123,6 +124,65 @@
     board.querySelectorAll("[data-claim-day]").forEach((btn) => {
       btn.addEventListener("click", () => handleClaimDay(btn.dataset.claimDay));
     });
+
+    renderChart();
+  }
+
+  function timeToMinutes(t) {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  }
+
+  function minutesToTime(mins) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }
+
+  function renderChart() {
+    const hoursEl = document.getElementById("chart-hours");
+    const daysEl = document.getElementById("chart-days");
+    if (!hoursEl || !daysEl) return;
+
+    let minMin = 6 * 60;
+    let maxMin = 22 * 60;
+    blockCache.forEach((b) => {
+      if (!b.start || !b.end) return;
+      minMin = Math.min(minMin, Math.floor(timeToMinutes(b.start) / 60) * 60);
+      maxMin = Math.max(maxMin, Math.ceil(timeToMinutes(b.end) / 60) * 60);
+    });
+
+    const trackHeight = ((maxMin - minMin) / 60) * CHART_PX_PER_HOUR;
+
+    let hourLabels = "";
+    for (let m = minMin; m <= maxMin; m += 60) {
+      const top = ((m - minMin) / 60) * CHART_PX_PER_HOUR;
+      hourLabels += `<div class="chart-hour-label" style="top:${top}px">${formatTime(minutesToTime(m))}</div>`;
+    }
+    hoursEl.style.height = `${trackHeight}px`;
+    hoursEl.innerHTML = hourLabels;
+
+    daysEl.innerHTML = window.TRIP_DAYS
+      .map((day) => {
+        const dayBlocks = blockCache.filter((b) => b.day === day.date);
+        const bars = dayBlocks
+          .map((b) => {
+            const activity = activityByValue[b.activity] || { icon: "⭐", label: "Quest" };
+            const s = timeToMinutes(b.start);
+            const e = timeToMinutes(b.end);
+            const top = ((s - minMin) / 60) * CHART_PX_PER_HOUR;
+            const height = Math.max(((e - s) / 60) * CHART_PX_PER_HOUR, 15);
+            const title = `${b.name} — ${activity.label} (${formatTime(b.start)}–${formatTime(b.end)})`;
+            return `<div class="chart-bar" style="top:${top}px;height:${height}px" title="${escapeHtml(title)}">${activity.icon} ${escapeHtml(b.name)}</div>`;
+          })
+          .join("");
+        return `
+        <div class="chart-day-col">
+          <div class="chart-day-col-label">${day.label}<br>${day.sub}</div>
+          <div class="chart-track" style="height:${trackHeight}px">${bars}</div>
+        </div>`;
+      })
+      .join("");
   }
 
   function handleClaimDay(date) {
