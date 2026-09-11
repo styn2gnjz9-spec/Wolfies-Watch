@@ -5,11 +5,11 @@ const ASSETS = [
   "./style.css",
   "./app.js",
   "./config.js",
-  "./wolfie-assets.js",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",
   "./favicon-32.png",
+  "./hero-logo.png",
 ];
 
 self.addEventListener("install", (event) => {

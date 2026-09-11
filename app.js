@@ -21,13 +21,6 @@
   let editingId = null;
 
   // ---------------------------------------------------------------
-  // Setup / images
-  // ---------------------------------------------------------------
-  function applyImages() {
-    document.getElementById("wolfie-avatar").src = window.WOLFIE_AVATAR;
-  }
-
-  // ---------------------------------------------------------------
   // Data
   // ---------------------------------------------------------------
   async function loadBlocks() {
@@ -298,7 +291,6 @@
   // Init
   // ---------------------------------------------------------------
   async function init() {
-    applyImages();
     populateFormOptions();
     renderMenu();
 
