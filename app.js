@@ -26,9 +26,43 @@
     const display = document.getElementById("blob-id-display");
     display.textContent = id;
     banner.hidden = false;
-    document.getElementById("copy-blob-id").addEventListener("click", () => {
+    document.getElementById("copy-blob-id").onclick = () => {
       navigator.clipboard?.writeText(id).catch(() => {});
-    });
+    };
+    banner.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Manually creates (or looks up) the shared schedule ID on demand, so
+  // setup never depends solely on the silent auto-run at page load.
+  async function runManualSetup() {
+    const btn = document.getElementById("manual-setup-btn");
+    const status = document.getElementById("manual-setup-status");
+    btn.disabled = true;
+    btn.textContent = "WORKING…";
+    status.textContent = "";
+    try {
+      let id = (window.BLOB_ID && window.BLOB_ID.trim()) || localStorage.getItem(LOCAL_FALLBACK_KEY);
+      if (!id) {
+        const res = await fetch(JSONBLOB_BASE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ watchBlocks: [] }),
+        });
+        if (!res.ok) throw new Error(`jsonblob.com returned an error (status ${res.status}).`);
+        const location = res.headers.get("Location") || "";
+        id = location.split("/").filter(Boolean).pop();
+        if (!id) throw new Error("Created the storage, but couldn't read its ID back from the response.");
+        localStorage.setItem(LOCAL_FALLBACK_KEY, id);
+      }
+      showSetupBanner(id);
+      status.textContent = "✅ Scroll up — your Blob ID is shown above.";
+    } catch (err) {
+      status.textContent = `⚠️ ${err.message} (open the browser console for details)`;
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "🔧 GET SHARED SCHEDULE ID";
+    }
   }
 
   async function resolveBlobUrl() {
@@ -273,6 +307,7 @@
 
     document.getElementById("shift-form").addEventListener("submit", handleSubmit);
     document.getElementById("refresh-btn").addEventListener("click", () => refresh(true));
+    document.getElementById("manual-setup-btn").addEventListener("click", runManualSetup);
 
     try {
       blobUrl = await resolveBlobUrl();
