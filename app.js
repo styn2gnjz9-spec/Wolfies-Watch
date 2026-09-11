@@ -2,7 +2,6 @@
   "use strict";
 
   const REFRESH_MS = 15000;
-  const CHART_PX_PER_HOUR = 12;
 
   const BOOT_ICON =
     '<svg class="icon-inline" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><path d="M46 2 L68 2 C74 2 77 6 77 12 L77 46 C77 53 82 57 89 61 C96 65 98 70 98 77 L98 85 C98 90 94 94 89 94 L23 94 C16 94 8 92 3 87 C-1 83 1 77 7 75 L20 71 C30 68 38 63 41 55 L42 12 C42 6 43 2 46 2 Z"/></svg>';
@@ -140,9 +139,9 @@
   }
 
   function renderChart() {
-    const hoursEl = document.getElementById("chart-hours");
-    const daysEl = document.getElementById("chart-days");
-    if (!hoursEl || !daysEl) return;
+    const axisEl = document.getElementById("week-chart-axis");
+    const rowsEl = document.getElementById("week-chart-rows");
+    if (!axisEl || !rowsEl) return;
 
     let minMin = 6 * 60;
     let maxMin = 22 * 60;
@@ -151,8 +150,7 @@
       minMin = Math.min(minMin, Math.floor(timeToMinutes(b.start) / 60) * 60);
       maxMin = Math.max(maxMin, Math.ceil(timeToMinutes(b.end) / 60) * 60);
     });
-
-    const trackHeight = ((maxMin - minMin) / 60) * CHART_PX_PER_HOUR;
+    const span = maxMin - minMin;
 
     const landmarks = [
       { minutes: 8 * 60, label: "MORNING" },
@@ -168,33 +166,31 @@
           { minutes: maxMin, label: formatTime(minutesToTime(maxMin)) },
         ];
 
-    const hourLabels = shownLandmarks
+    axisEl.innerHTML = shownLandmarks
       .map((lm) => {
-        const top = ((lm.minutes - minMin) / 60) * CHART_PX_PER_HOUR;
-        return `<div class="chart-hour-label" style="top:${top}px">${lm.label}</div>`;
+        const left = ((lm.minutes - minMin) / span) * 100;
+        return `<span class="week-axis-label" style="left:${left}%">${lm.label}</span>`;
       })
       .join("");
-    hoursEl.style.height = `${trackHeight}px`;
-    hoursEl.innerHTML = hourLabels;
 
-    daysEl.innerHTML = window.TRIP_DAYS
+    rowsEl.innerHTML = window.TRIP_DAYS
       .map((day) => {
         const dayBlocks = blockCache.filter((b) => b.day === day.date);
-        const bars = dayBlocks
+        const segments = dayBlocks
           .map((b) => {
             const activity = activityByValue[b.activity] || { icon: "⭐", label: "Quest" };
             const s = timeToMinutes(b.start);
             const e = timeToMinutes(b.end);
-            const top = ((s - minMin) / 60) * CHART_PX_PER_HOUR;
-            const height = Math.max(((e - s) / 60) * CHART_PX_PER_HOUR, 12);
+            const left = ((s - minMin) / span) * 100;
+            const width = Math.max(((e - s) / span) * 100, 4);
             const title = `${b.name} — ${activity.label} (${formatTime(b.start)}–${formatTime(b.end)})`;
-            return `<div class="chart-bar" style="top:${top}px;height:${height}px" title="${escapeHtml(title)}">${activity.icon} ${escapeHtml(b.name)}</div>`;
+            return `<div class="week-row-segment" style="left:${left}%;width:${width}%" title="${escapeHtml(title)}"><span>${activity.icon}</span><span>${escapeHtml(b.name)}</span></div>`;
           })
           .join("");
         return `
-        <div class="chart-day-col">
-          <div class="chart-day-col-label">${day.label}<br>${day.sub}</div>
-          <div class="chart-track" style="height:${trackHeight}px">${bars}</div>
+        <div class="week-chart-row">
+          <div class="week-row-label">${day.label}<span class="sub">${day.sub}</span></div>
+          <div class="week-row-track">${segments}</div>
         </div>`;
       })
       .join("");
