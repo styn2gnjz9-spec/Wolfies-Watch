@@ -210,6 +210,7 @@ h1, h2 {
 }
 
 .toolbar-btn {
+  position: relative;
   width: 36px;
   height: 36px;
   border: 2px solid var(--ink);
@@ -227,6 +228,17 @@ h1, h2 {
 
 .toolbar-btn:active {
   box-shadow: 0 1px 0 var(--wolfie-copper-dark);
+}
+
+.unread-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #e0392b;
+  border: 2px solid var(--wolfie-cream);
 }
 
 .glow {
@@ -360,7 +372,8 @@ label {
   color: var(--text-muted);
 }
 
-.optional {
+.optional,
+.char-count {
   font-size: 0.85rem;
   font-weight: 400;
   opacity: 0.75;
@@ -653,6 +666,119 @@ button:active {
 .form-buttons .btn-primary {
   flex: 1;
   min-width: 160px;
+}
+
+/* --- treats feed --- */
+.treats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.treats-empty {
+  color: var(--text-muted);
+  font-weight: 700;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.treat-card {
+  background: var(--wolfie-cream);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.treat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.treat-author {
+  font-family: "Fredoka", sans-serif;
+  font-weight: 700;
+  color: var(--wolfie-copper-dark);
+}
+
+.treat-time {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.treat-text {
+  margin: 0 0 10px;
+  word-break: break-word;
+}
+
+.treat-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.treat-like-btn,
+.treat-comment-toggle {
+  font-family: "Fredoka", sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 20px;
+  background: var(--wolfie-white);
+  color: var(--text-dark);
+}
+
+.treat-like-btn.active {
+  background: var(--wolfie-gold);
+  box-shadow: 0 2px 0 var(--wolfie-gold-dark);
+}
+
+.treat-comments {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 2px dashed var(--wolfie-copper-pale);
+}
+
+.treat-comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.treat-comment {
+  font-size: 0.9rem;
+  background: var(--wolfie-white);
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  padding: 6px 10px;
+  word-break: break-word;
+}
+
+.treat-comment-form {
+  display: flex;
+  gap: 8px;
+}
+
+.treat-comment-form input {
+  flex: 1;
+  font-family: "Nunito", sans-serif;
+  font-size: 0.95rem;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--wolfie-white);
+}
+
+.treat-comment-form button {
+  font-size: 0.8rem;
+  padding: 8px 12px;
+  white-space: nowrap;
 }
 
 /* --- week-at-a-glance chart --- */

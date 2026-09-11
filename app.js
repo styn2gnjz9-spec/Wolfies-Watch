@@ -374,6 +374,317 @@
   }
 
   // ---------------------------------------------------------------
+  // Treats (mini social feed)
+  // ---------------------------------------------------------------
+  const TREATS_URL = FIREBASE_URL ? `${FIREBASE_URL}/treats.json` : "";
+  const MY_NAME_KEY = "wolfiesWatchMyName";
+  const TREATS_SEEN_KEY = "wolfiesWatchTreatsLastSeen";
+  const TREAT_MAX_LEN = 100;
+  const COMMENT_MAX_LEN = 140;
+
+  let treatCache = [];
+
+  function getMyName() {
+    try {
+      return localStorage.getItem(MY_NAME_KEY) || "";
+    } catch (err) {
+      return "";
+    }
+  }
+
+  function setMyName(name) {
+    try {
+      localStorage.setItem(MY_NAME_KEY, name);
+    } catch (err) {
+      // ignore — nothing to persist to
+    }
+  }
+
+  function promptForName() {
+    const typed = prompt("What's your name?");
+    if (!typed || !typed.trim()) return "";
+    const name = typed.trim();
+    setMyName(name);
+    return name;
+  }
+
+  async function loadTreats() {
+    const res = await fetch(TREATS_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("Could not load treats.");
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function saveTreats(treats) {
+    const res = await fetch(TREATS_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(treats),
+    });
+    if (!res.ok) throw new Error("Could not save treats.");
+  }
+
+  function timeAgo(ts) {
+    if (!ts) return "";
+    const mins = Math.max(0, Math.floor((Date.now() - ts) / 60000));
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
+
+  function latestTreatsActivity() {
+    let latest = 0;
+    treatCache.forEach((t) => {
+      latest = Math.max(latest, t.createdAt || 0);
+      (t.comments || []).forEach((c) => {
+        latest = Math.max(latest, c.createdAt || 0);
+      });
+    });
+    return latest;
+  }
+
+  function updateTreatsBadge() {
+    const badge = document.getElementById("treats-unread-badge");
+    if (!badge) return;
+    let lastSeen = 0;
+    try {
+      lastSeen = Number(localStorage.getItem(TREATS_SEEN_KEY)) || 0;
+    } catch (err) {
+      // ignore
+    }
+    badge.hidden = latestTreatsActivity() <= lastSeen;
+  }
+
+  function markTreatsSeen() {
+    try {
+      localStorage.setItem(TREATS_SEEN_KEY, String(Date.now()));
+    } catch (err) {
+      // ignore
+    }
+    updateTreatsBadge();
+  }
+
+  function renderTreatCard(treat) {
+    const myName = getMyName();
+    const likes = treat.likes || {};
+    const liked = Boolean(myName && likes[myName]);
+    const likeCount = Object.keys(likes).length;
+    const comments = treat.comments || [];
+
+    const commentsHtml = comments
+      .map(
+        (c) =>
+          `<div class="treat-comment"><strong>${escapeHtml(c.author)}:</strong> ${escapeHtml(c.text)}</div>`
+      )
+      .join("");
+
+    return `
+      <div class="treat-card">
+        <div class="treat-head">
+          <span class="treat-author">${escapeHtml(treat.author)}</span>
+          <span class="treat-time">${timeAgo(treat.createdAt)}</span>
+        </div>
+        <p class="treat-text">${escapeHtml(treat.text)}</p>
+        <div class="treat-actions">
+          <button type="button" class="treat-like-btn${liked ? " active" : ""}" data-like-id="${treat.id}">🦴 ${likeCount}</button>
+          <button type="button" class="treat-comment-toggle" data-comment-toggle="${treat.id}">💬 ${comments.length}</button>
+        </div>
+        <div class="treat-comments" id="treat-comments-${treat.id}" hidden>
+          ${comments.length ? `<div class="treat-comment-list">${commentsHtml}</div>` : ""}
+          <form class="treat-comment-form" data-comment-form="${treat.id}" autocomplete="off">
+            <input type="text" maxlength="${COMMENT_MAX_LEN}" placeholder="Add a comment..." required />
+            <button type="submit" class="btn-secondary">Reply</button>
+          </form>
+        </div>
+      </div>`;
+  }
+
+  function renderTreats() {
+    const list = document.getElementById("treats-list");
+    if (!list) return;
+
+    const sorted = [...treatCache].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    list.innerHTML = sorted.length
+      ? sorted.map(renderTreatCard).join("")
+      : `<p class="treats-empty">No treats yet — say howdy!</p>`;
+
+    list.querySelectorAll("[data-like-id]").forEach((btn) => {
+      btn.addEventListener("click", () => handleLikeTreat(btn.dataset.likeId));
+    });
+    list.querySelectorAll("[data-comment-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const panel = document.getElementById(`treat-comments-${btn.dataset.commentToggle}`);
+        if (panel) panel.hidden = !panel.hidden;
+      });
+    });
+    list.querySelectorAll("[data-comment-form]").forEach((form) => {
+      form.addEventListener("submit", (evt) => handleCommentSubmit(evt, form.dataset.commentForm));
+    });
+
+    updateTreatsBadge();
+  }
+
+  async function handleLikeTreat(id) {
+    let myName = getMyName();
+    if (!myName) {
+      myName = promptForName();
+      if (!myName) return;
+    }
+    try {
+      treatCache = await loadTreats();
+      const treat = treatCache.find((t) => t.id === id);
+      if (!treat) return;
+      treat.likes = treat.likes || {};
+      if (treat.likes[myName]) {
+        delete treat.likes[myName];
+      } else {
+        treat.likes[myName] = true;
+      }
+      await saveTreats(treatCache);
+      renderTreats();
+    } catch (err) {
+      alert("Couldn't update that like — try again.");
+      console.error(err);
+    }
+  }
+
+  async function handleCommentSubmit(evt, treatId) {
+    evt.preventDefault();
+    const input = evt.target.querySelector("input");
+    const text = input.value.trim();
+    if (!text) return;
+
+    let myName = getMyName();
+    if (!myName) {
+      myName = promptForName();
+      if (!myName) return;
+    }
+
+    const submitBtn = evt.target.querySelector("button");
+    submitBtn.disabled = true;
+
+    try {
+      treatCache = await loadTreats();
+      const treat = treatCache.find((t) => t.id === treatId);
+      if (!treat) return;
+      treat.comments = treat.comments || [];
+      treat.comments.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        author: myName,
+        text,
+        createdAt: Date.now(),
+      });
+      await saveTreats(treatCache);
+      renderTreats();
+      const panel = document.getElementById(`treat-comments-${treatId}`);
+      if (panel) panel.hidden = false;
+    } catch (err) {
+      alert("Couldn't post that comment — try again.");
+      console.error(err);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  function updateTreatCharCount() {
+    const textInput = document.getElementById("treat-text");
+    const counter = document.getElementById("treat-char-count");
+    if (!textInput || !counter) return;
+    counter.textContent = `${textInput.value.length}/${TREAT_MAX_LEN}`;
+  }
+
+  async function handleTreatSubmit(evt) {
+    evt.preventDefault();
+    const errorEl = document.getElementById("treat-form-error");
+    errorEl.hidden = true;
+
+    const nameInput = document.getElementById("treat-name");
+    const textInput = document.getElementById("treat-text");
+    const name = nameInput.value.trim();
+    const text = textInput.value.trim();
+
+    if (!name || !text) {
+      errorEl.textContent = "Fill in your name and a treat to post!";
+      errorEl.hidden = false;
+      return;
+    }
+
+    const form = document.getElementById("treat-form");
+    const submitBtn = form.querySelector(".btn-primary");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "POSTING…";
+
+    try {
+      setMyName(name);
+      treatCache = await loadTreats();
+      treatCache.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        author: name,
+        text: text.slice(0, TREAT_MAX_LEN),
+        createdAt: Date.now(),
+        likes: {},
+        comments: [],
+      });
+      await saveTreats(treatCache);
+      renderTreats();
+      textInput.value = "";
+      updateTreatCharCount();
+      markTreatsSeen();
+    } catch (err) {
+      errorEl.textContent = "Couldn't post your treat — try again in a moment.";
+      errorEl.hidden = false;
+      console.error(err);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Post Treat";
+    }
+  }
+
+  async function refreshTreats() {
+    if (!TREATS_URL) return;
+    try {
+      treatCache = await loadTreats();
+      renderTreats();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  function initTreatsSection() {
+    const section = document.getElementById("treats-section");
+    if (!section) return;
+
+    const savedName = getMyName();
+    if (savedName) document.getElementById("treat-name").value = savedName;
+
+    document.getElementById("treat-form").addEventListener("submit", handleTreatSubmit);
+    document.getElementById("treat-text").addEventListener("input", updateTreatCharCount);
+    updateTreatCharCount();
+
+    const navBtn = document.getElementById("treats-nav-btn");
+    if (navBtn) {
+      navBtn.addEventListener("click", () => {
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+        markTreatsSeen();
+      });
+    }
+
+    if ("IntersectionObserver" in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) markTreatsSeen();
+          });
+        },
+        { threshold: 0.4 }
+      );
+      observer.observe(section);
+    }
+  }
+
+  // ---------------------------------------------------------------
   // Install prompt
   // ---------------------------------------------------------------
   function isStandalone() {
@@ -441,6 +752,7 @@
   // ---------------------------------------------------------------
   async function init() {
     initInstallModal();
+    initTreatsSection();
     populateFormOptions();
     renderMenu();
 
@@ -466,7 +778,11 @@
     }
 
     await refresh(true);
-    setInterval(() => refresh(false), REFRESH_MS);
+    await refreshTreats();
+    setInterval(() => {
+      refresh(false);
+      refreshTreats();
+    }, REFRESH_MS);
   }
 
   if ("serviceWorker" in navigator) {
