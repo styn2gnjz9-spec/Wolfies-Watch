@@ -368,6 +368,18 @@
     document.getElementById("refresh-btn").addEventListener("click", () => refresh(true));
     document.getElementById("cancel-edit-btn").addEventListener("click", handleCancelEdit);
 
+    document.getElementById("app-refresh-btn").addEventListener("click", () => location.reload());
+    document.getElementById("app-close-btn").addEventListener("click", () => {
+      window.close();
+      // Browsers block a page from closing a tab/window it didn't itself
+      // open (which is the case for a bookmark or home-screen launch), so
+      // window.close() silently no-ops here in most browsers. If we're
+      // still around a moment later, say so instead of leaving a dead button.
+      setTimeout(() => {
+        alert("Your browser won't let a page close itself here — use your phone's back gesture, the Home button, or swipe the app away to exit.");
+      }, 300);
+    });
+
     if (!BLOCKS_URL) {
       setStatus("⚠️ Shared schedule isn't configured yet — set window.FIREBASE_DB_URL in config.js.");
       return;
