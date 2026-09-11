@@ -54,6 +54,6 @@ window.MEAL_MENU = [
     course: "Dessert Round",
     time: "after walks / good behavior",
     items: ["1–2 small treats", "no table scraps, please!"],
-    icon: "🥧",
+    icon: "🍰",
   },
 ];
