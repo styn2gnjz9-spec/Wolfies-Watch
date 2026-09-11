@@ -138,9 +138,29 @@
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   }
 
+  const PERSON_COLORS = [
+    "#c1712f", // copper
+    "#3d6b96", // steel blue
+    "#4a7c59", // sage green
+    "#a13d63", // berry
+    "#b8860b", // goldenrod
+    "#6b4c9a", // purple
+    "#c1440e", // burnt orange
+    "#2f6b6b", // teal
+  ];
+
+  function colorForPerson(name) {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+    }
+    return PERSON_COLORS[hash % PERSON_COLORS.length];
+  }
+
   function renderChart() {
     const axisEl = document.getElementById("week-chart-axis");
     const rowsEl = document.getElementById("week-chart-rows");
+    const legendEl = document.getElementById("week-chart-legend");
     if (!axisEl || !rowsEl) return;
 
     let minMin = 6 * 60;
@@ -152,25 +172,15 @@
     });
     const span = maxMin - minMin;
 
-    const landmarks = [
-      { minutes: 8 * 60, label: "MORNING" },
-      { minutes: 12 * 60, label: "NOON" },
-      { minutes: 20 * 60, label: "NIGHT" },
-    ].filter((lm) => lm.minutes >= minMin && lm.minutes <= maxMin);
-    // Fall back to the range's own start/end if none of the fixed
-    // landmarks land inside an unusually narrow time range.
-    const shownLandmarks = landmarks.length
-      ? landmarks
-      : [
-          { minutes: minMin, label: formatTime(minutesToTime(minMin)) },
-          { minutes: maxMin, label: formatTime(minutesToTime(maxMin)) },
-        ];
-
-    axisEl.innerHTML = shownLandmarks
-      .map((lm) => {
-        const left = ((lm.minutes - minMin) / span) * 100;
-        return `<span class="week-axis-label" style="left:${left}%">${lm.label}</span>`;
-      })
+    // Fixed, evenly-spaced landmarks rather than clock-proportional
+    // positions — keeps NOON dead center and MORNING/NIGHT predictable
+    // regardless of how lopsided the actual claimed times are.
+    axisEl.innerHTML = [
+      { left: 15, label: "MORNING" },
+      { left: 50, label: "NOON" },
+      { left: 85, label: "NIGHT" },
+    ]
+      .map((lm) => `<span class="week-axis-label" style="left:${lm.left}%">${lm.label}</span>`)
       .join("");
 
     rowsEl.innerHTML = window.TRIP_DAYS
@@ -184,7 +194,8 @@
             const left = ((s - minMin) / span) * 100;
             const width = Math.max(((e - s) / span) * 100, 4);
             const title = `${b.name} — ${activity.label} (${formatTime(b.start)}–${formatTime(b.end)})`;
-            return `<div class="week-row-segment" style="left:${left}%;width:${width}%" title="${escapeHtml(title)}"><span>${activity.icon}</span><span>${escapeHtml(b.name)}</span></div>`;
+            const color = colorForPerson(b.name);
+            return `<div class="week-row-segment" style="left:${left}%;width:${width}%;background:${color}" title="${escapeHtml(title)}"><span>${activity.icon}</span><span>${escapeHtml(b.name)}</span></div>`;
           })
           .join("");
         return `
@@ -194,6 +205,17 @@
         </div>`;
       })
       .join("");
+
+    if (legendEl) {
+      const names = [...new Set(blockCache.map((b) => b.name).filter(Boolean))].sort();
+      legendEl.innerHTML = names
+        .map(
+          (name) =>
+            `<span class="week-legend-chip"><span class="week-legend-dot" style="background:${colorForPerson(name)}"></span>${escapeHtml(name)}</span>`
+        )
+        .join("");
+      legendEl.hidden = names.length === 0;
+    }
   }
 
   function handleClaimDay(date) {

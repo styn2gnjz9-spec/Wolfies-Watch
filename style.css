@@ -761,6 +761,32 @@ button:active {
   white-space: nowrap;
 }
 
+.week-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 2px dashed var(--wolfie-copper-pale);
+}
+
+.week-legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.week-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  flex: none;
+}
+
 /* --- power-up shop (meals) --- */
 .menu-intro {
   color: var(--text-muted);
