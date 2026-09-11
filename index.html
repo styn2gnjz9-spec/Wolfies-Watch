@@ -5,8 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Wolfie's Watch</title>
 <meta name="description" content="A wild-west co-op schedule for watching Wolfie while John's out of town." />
-<link id="favicon" rel="icon" type="image/png" />
-<link id="apple-icon" rel="apple-touch-icon" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#935420" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Wolfie's Watch" />
+<link id="favicon" rel="icon" type="image/png" href="favicon-32.png" />
+<link id="apple-icon" rel="apple-touch-icon" href="icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Rye&family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet" />
@@ -51,7 +57,7 @@
   </section>
 
   <section class="panel" id="claim-quest">
-    <h2>🤠 Sign Up, Deputy</h2>
+    <h2 id="claim-quest-heading">🤠 Sign Up, Deputy</h2>
     <form id="shift-form" autocomplete="off">
       <label>
         Your Name
@@ -84,7 +90,10 @@
         <textarea id="f-notes" name="notes" maxlength="140" rows="2" placeholder="e.g. bringing him to the dog park after!"></textarea>
       </label>
 
-      <button type="submit" class="btn-primary">🤠 SADDLE UP</button>
+      <div class="form-buttons">
+        <button type="submit" class="btn-primary">🤠 SADDLE UP</button>
+        <button type="button" id="cancel-edit-btn" class="btn-secondary" hidden>Cancel Edit</button>
+      </div>
       <p id="form-error" class="form-error" hidden></p>
     </form>
   </section>

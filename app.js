@@ -13,14 +13,13 @@
   );
 
   let blockCache = [];
+  let editingId = null;
 
   // ---------------------------------------------------------------
   // Setup / images
   // ---------------------------------------------------------------
   function applyImages() {
     document.getElementById("wolfie-avatar").src = window.WOLFIE_AVATAR;
-    document.getElementById("favicon").href = window.WOLFIE_FAVICON_32;
-    document.getElementById("apple-icon").href = window.WOLFIE_ICON_192;
   }
 
   // ---------------------------------------------------------------
@@ -120,6 +119,9 @@
     board.querySelectorAll("[data-remove-id]").forEach((btn) => {
       btn.addEventListener("click", () => handleRemove(btn.dataset.removeId));
     });
+    board.querySelectorAll("[data-edit-id]").forEach((btn) => {
+      btn.addEventListener("click", () => handleEdit(btn.dataset.editId));
+    });
   }
 
   function renderQuestCard(block) {
@@ -136,7 +138,10 @@
           <div class="quest-activity">${escapeHtml(activity.label)}</div>
           ${block.notes ? `<div class="quest-notes">"${escapeHtml(block.notes)}"</div>` : ""}
         </div>
-        <button type="button" class="quest-remove" data-remove-id="${block.id}">✕</button>
+        <div class="quest-actions">
+          <button type="button" class="quest-edit" data-edit-id="${block.id}" title="Edit">✎</button>
+          <button type="button" class="quest-remove" data-remove-id="${block.id}" title="Cancel">✕</button>
+        </div>
       </div>`;
   }
 
@@ -178,16 +183,6 @@
       return;
     }
 
-    const newBlock = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      name,
-      day,
-      start,
-      end,
-      activity,
-      notes,
-    };
-
     const form = document.getElementById("shift-form");
     const submitBtn = form.querySelector(".btn-primary");
     submitBtn.disabled = true;
@@ -195,19 +190,81 @@
 
     try {
       blockCache = await loadBlocks();
-      blockCache.push(newBlock);
+      if (editingId) {
+        const idx = blockCache.findIndex((b) => b.id === editingId);
+        const updated = { id: editingId, name, day, start, end, activity, notes };
+        if (idx === -1) {
+          blockCache.push(updated);
+        } else {
+          blockCache[idx] = updated;
+        }
+      } else {
+        blockCache.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          name,
+          day,
+          start,
+          end,
+          activity,
+          notes,
+        });
+      }
       await saveBlocks(blockCache);
       renderBoard();
       form.reset();
       populateFormOptions();
+      editingId = null;
+      setEditModeUI(false);
     } catch (err) {
-      errorEl.textContent = "Couldn't save your quest — try again in a moment.";
+      errorEl.textContent = editingId
+        ? "Couldn't save your changes — try again in a moment."
+        : "Couldn't save your quest — try again in a moment.";
       errorEl.hidden = false;
       console.error(err);
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = "🎮 CLAIM QUEST";
+      submitBtn.textContent = editingId ? "💾 SAVE CHANGES" : "🤠 SADDLE UP";
     }
+  }
+
+  function setEditModeUI(isEditing) {
+    const heading = document.getElementById("claim-quest-heading");
+    const submitBtn = document.querySelector("#shift-form .btn-primary");
+    const cancelBtn = document.getElementById("cancel-edit-btn");
+    heading.textContent = isEditing ? "✎ Editing Quest" : "🤠 Sign Up, Deputy";
+    submitBtn.textContent = isEditing ? "💾 SAVE CHANGES" : "🤠 SADDLE UP";
+    cancelBtn.hidden = !isEditing;
+  }
+
+  function handleEdit(id) {
+    const block = blockCache.find((b) => b.id === id);
+    if (!block) return;
+    const typed = prompt(
+      `Editing "${block.name}"'s quest. Type their name to confirm:`
+    );
+    if (typed === null) return;
+    if (typed.trim().toLowerCase() !== block.name.trim().toLowerCase()) {
+      alert("Name didn't match — quest not opened for editing.");
+      return;
+    }
+
+    editingId = id;
+    document.getElementById("f-name").value = block.name;
+    document.getElementById("f-day").value = block.day;
+    document.getElementById("f-start").value = block.start;
+    document.getElementById("f-end").value = block.end;
+    document.getElementById("f-activity").value = block.activity;
+    document.getElementById("f-notes").value = block.notes || "";
+    setEditModeUI(true);
+    document.getElementById("claim-quest").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function handleCancelEdit() {
+    editingId = null;
+    document.getElementById("shift-form").reset();
+    populateFormOptions();
+    document.getElementById("form-error").hidden = true;
+    setEditModeUI(false);
   }
 
   async function handleRemove(id) {
@@ -225,6 +282,7 @@
       blockCache = blockCache.filter((b) => b.id !== id);
       await saveBlocks(blockCache);
       renderBoard();
+      if (editingId === id) handleCancelEdit();
     } catch (err) {
       alert("Couldn't cancel that quest — try again.");
       console.error(err);
@@ -241,6 +299,7 @@
 
     document.getElementById("shift-form").addEventListener("submit", handleSubmit);
     document.getElementById("refresh-btn").addEventListener("click", () => refresh(true));
+    document.getElementById("cancel-edit-btn").addEventListener("click", handleCancelEdit);
 
     if (!BLOCKS_URL) {
       setStatus("⚠️ Shared schedule isn't configured yet — set window.FIREBASE_DB_URL in config.js.");
@@ -249,6 +308,12 @@
 
     await refresh(true);
     setInterval(() => refresh(false), REFRESH_MS);
+  }
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch((err) => console.error(err));
+    });
   }
 
   document.addEventListener("DOMContentLoaded", init);

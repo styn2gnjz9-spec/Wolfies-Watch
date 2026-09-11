@@ -25,12 +25,15 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 body {
   margin: 0;
   padding: 0 20px 72px;
   min-height: 100vh;
+  width: 100%;
   background: linear-gradient(180deg, #fdf6e9 0%, #fbf1de 100%);
   color: var(--text-dark);
   font-family: "Nunito", sans-serif;
@@ -573,21 +576,53 @@ button:active {
   font-style: italic;
 }
 
+.quest-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: center;
+}
+
+.quest-edit,
 .quest-remove {
   border: 2px solid var(--ink);
-  background: var(--wolfie-copper-dark);
-  color: var(--wolfie-white);
   font-family: "Fredoka", sans-serif;
   font-weight: 700;
   font-size: 0.75rem;
   padding: 6px 9px;
   border-radius: 8px;
+}
+
+.quest-edit {
+  background: var(--wolfie-gold);
+  color: var(--ink);
+  box-shadow: 0 3px 0 var(--wolfie-gold-dark);
+}
+
+.quest-edit:active {
+  box-shadow: 0 1px 0 var(--wolfie-gold-dark);
+}
+
+.quest-remove {
+  background: var(--wolfie-copper-dark);
+  color: var(--wolfie-white);
   box-shadow: 0 3px 0 var(--wolfie-black);
-  align-self: center;
 }
 
 .quest-remove:active {
   box-shadow: 0 1px 0 var(--wolfie-black);
+}
+
+.form-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.form-buttons .btn-primary {
+  flex: 1;
+  min-width: 160px;
 }
 
 /* --- power-up shop (meals) --- */
