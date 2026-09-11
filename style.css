@@ -229,8 +229,8 @@ h1, h2 {
   width: 84%;
   height: 84%;
   max-width: none;
-  object-fit: contain;
-  object-position: center 30%;
+  object-fit: cover;
+  object-position: 42% center;
   clip-path: var(--torn-shape);
   filter: drop-shadow(0 14px 12px rgba(0, 0, 0, 0.5));
   animation: bob 3.4s ease-in-out infinite;
