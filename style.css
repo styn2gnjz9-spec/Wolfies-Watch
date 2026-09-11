@@ -225,11 +225,13 @@ h1, h2 {
 .hero-wolfie {
   position: absolute;
   z-index: 2;
-  left: 50%;
-  top: 36px;
-  width: 280px;
-  margin-left: -140px;
+  inset: 8%;
+  width: 84%;
+  height: 84%;
   max-width: none;
+  object-fit: contain;
+  object-position: center 30%;
+  clip-path: var(--torn-shape);
   filter: drop-shadow(0 14px 12px rgba(0, 0, 0, 0.5));
   animation: bob 3.4s ease-in-out infinite;
 }
@@ -686,12 +688,6 @@ button:active {
   .hero-hole {
     width: 300px;
     height: 300px;
-  }
-
-  .hero-wolfie {
-    width: 340px;
-    margin-left: -170px;
-    top: 42px;
   }
 }
 
