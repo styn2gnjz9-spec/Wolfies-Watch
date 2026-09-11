@@ -483,7 +483,10 @@
       <div class="treat-card">
         <div class="treat-head">
           <span class="treat-author">${escapeHtml(treat.author)}</span>
-          <span class="treat-time">${timeAgo(treat.createdAt)}</span>
+          <span class="treat-head-right">
+            <span class="treat-time">${timeAgo(treat.createdAt)}</span>
+            <button type="button" class="treat-delete" data-delete-id="${treat.id}" title="Delete">✕</button>
+          </span>
         </div>
         <p class="treat-text">${escapeHtml(treat.text)}</p>
         <div class="treat-actions">
@@ -521,8 +524,31 @@
     list.querySelectorAll("[data-comment-form]").forEach((form) => {
       form.addEventListener("submit", (evt) => handleCommentSubmit(evt, form.dataset.commentForm));
     });
+    list.querySelectorAll("[data-delete-id]").forEach((btn) => {
+      btn.addEventListener("click", () => handleDeleteTreat(btn.dataset.deleteId));
+    });
 
     updateTreatsBadge();
+  }
+
+  async function handleDeleteTreat(id) {
+    const treat = treatCache.find((t) => t.id === id);
+    if (!treat) return;
+    const typed = prompt(`Deleting "${treat.author}"'s treat. Type their name to confirm:`);
+    if (typed === null) return;
+    if (typed.trim().toLowerCase() !== treat.author.trim().toLowerCase()) {
+      alert("Name didn't match — treat not deleted.");
+      return;
+    }
+    try {
+      treatCache = await loadTreats();
+      treatCache = treatCache.filter((t) => t.id !== id);
+      await saveTreats(treatCache);
+      renderTreats();
+    } catch (err) {
+      alert("Couldn't delete that treat — try again.");
+      console.error(err);
+    }
   }
 
   async function handleLikeTreat(id) {

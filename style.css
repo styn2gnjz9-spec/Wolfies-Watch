@@ -588,11 +588,34 @@ button:active {
   color: var(--wolfie-copper-dark);
 }
 
+.treat-head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
 .treat-time {
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+.treat-delete {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--wolfie-copper-dark);
+  color: var(--wolfie-white);
+  font-size: 0.65rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .treat-text {
