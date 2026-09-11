@@ -1,0 +1,128 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wolfie's Watch</title>
+<meta name="description" content="A wild-west co-op schedule for watching Wolfie while John's out of town." />
+<link id="favicon" rel="icon" type="image/png" />
+<link id="apple-icon" rel="apple-touch-icon" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rye&family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="stage-decor" aria-hidden="true">
+  <div class="glow"></div>
+  <div class="sparkle s1">✦</div>
+  <div class="sparkle s2">✦</div>
+</div>
+
+<div id="setup-banner" class="setup-banner" hidden>
+  <p><strong>⚙️ ONE-TIME SETUP</strong></p>
+  <p>A new shared schedule was just created. Copy this Blob ID into
+  <code>config.js</code> (<code>window.BLOB_ID = "…"</code>) and commit it,
+  so everyone shares the same board:</p>
+  <p class="blob-id" id="blob-id-display"></p>
+  <button id="copy-blob-id" type="button">COPY ID</button>
+</div>
+
+<header class="hero-banner">
+  <div class="hero-bg" aria-hidden="true"></div>
+
+  <div class="hero-stage">
+    <div class="hero-flap flap-left" aria-hidden="true"></div>
+    <div class="hero-flap flap-right" aria-hidden="true"></div>
+
+    <div class="wood-sign">
+      <h1 class="logo">WOLFIE'S<span>WATCH</span></h1>
+    </div>
+
+    <div class="hero-hole">
+      <div class="hero-hole-glow" aria-hidden="true"></div>
+      <img id="wolfie-avatar" class="hero-wolfie" alt="Wolfie bursting through" />
+    </div>
+  </div>
+
+  <p class="subtitle">🤠 Howdy, Partner — Rustle Up a Watch Crew! 🤠</p>
+</header>
+
+<main>
+  <section class="panel mission-banner">
+    <p class="mission-label">📜 WANTED: A POSSE</p>
+    <p>
+      John's hit the trail for <strong>LA</strong> —
+      <strong>Mon, Sept 14</strong> through <strong>Sat, Sept 19</strong>.
+      Wolfie needs deputies to keep him fed, walked, and out of trouble
+      while the sheriff's away. Pick a shift below and sign the register!
+    </p>
+  </section>
+
+  <section class="panel" id="claim-quest">
+    <h2>🤠 Sign Up, Deputy</h2>
+    <form id="shift-form" autocomplete="off">
+      <label>
+        Your Name
+        <input type="text" id="f-name" name="name" maxlength="40" required placeholder="Deputy name..." />
+      </label>
+
+      <label>
+        Day
+        <select id="f-day" name="day" required></select>
+      </label>
+
+      <div class="time-row">
+        <label>
+          Start
+          <input type="time" id="f-start" name="start" required />
+        </label>
+        <label>
+          End
+          <input type="time" id="f-end" name="end" required />
+        </label>
+      </div>
+
+      <label>
+        Type of Duty
+        <select id="f-activity" name="activity" required></select>
+      </label>
+
+      <label>
+        Notes <span class="optional">(optional)</span>
+        <textarea id="f-notes" name="notes" maxlength="140" rows="2" placeholder="e.g. bringing him to the dog park after!"></textarea>
+      </label>
+
+      <button type="submit" class="btn-primary">🤠 SADDLE UP</button>
+      <p id="form-error" class="form-error" hidden></p>
+    </form>
+  </section>
+
+  <section class="panel" id="schedule-board">
+    <div class="board-header">
+      <h2>🐴 The Round-Up Schedule</h2>
+      <button id="refresh-btn" type="button" class="btn-secondary" title="Refresh">⟳ REFRESH</button>
+    </div>
+    <p id="board-status" class="board-status"></p>
+    <div id="board" class="board"></div>
+  </section>
+
+  <section class="panel" id="menu">
+    <h2>🍖 Wolfie's Chuck Wagon Menu</h2>
+    <p class="menu-intro">Grub stops along the trail — keeps a good deputy fed!</p>
+    <div id="menu-list" class="menu-list"></div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>🐾 THIS TOWN AIN'T BIG ENOUGH FOR ONE DOG WALKER 🐾</p>
+</footer>
+
+<script src="wolfie-assets.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
+
+</body></html>
