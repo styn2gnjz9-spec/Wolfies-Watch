@@ -2,8 +2,7 @@
   "use strict";
 
   const REFRESH_MS = 15000;
-  const CHART_PX_PER_HOUR = 26;
-  const INSTALL_DISMISS_KEY = "wolfiesWatchInstallDismissed";
+  const CHART_PX_PER_HOUR = 12;
 
   const BOOT_ICON =
     '<svg class="icon-inline" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><path d="M46 2 L68 2 C74 2 77 6 77 12 L77 46 C77 53 82 57 89 61 C96 65 98 70 98 77 L98 85 C98 90 94 94 89 94 L23 94 C16 94 8 92 3 87 C-1 83 1 77 7 75 L20 71 C30 68 38 63 41 55 L42 12 C42 6 43 2 46 2 Z"/></svg>';
@@ -187,7 +186,7 @@
             const s = timeToMinutes(b.start);
             const e = timeToMinutes(b.end);
             const top = ((s - minMin) / 60) * CHART_PX_PER_HOUR;
-            const height = Math.max(((e - s) / 60) * CHART_PX_PER_HOUR, 15);
+            const height = Math.max(((e - s) / 60) * CHART_PX_PER_HOUR, 12);
             const title = `${b.name} — ${activity.label} (${formatTime(b.start)}–${formatTime(b.end)})`;
             return `<div class="chart-bar" style="top:${top}px;height:${height}px" title="${escapeHtml(title)}">${activity.icon} ${escapeHtml(b.name)}</div>`;
           })
@@ -685,73 +684,9 @@
   }
 
   // ---------------------------------------------------------------
-  // Install prompt
-  // ---------------------------------------------------------------
-  function isStandalone() {
-    return (
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true
-    );
-  }
-
-  function detectInstallPlatform() {
-    const ua = navigator.userAgent || "";
-    if (/iPhone|iPad|iPod/.test(ua)) return "ios";
-    if (/Android/.test(ua)) return "android";
-    return "ios";
-  }
-
-  function showInstallTab(modal, platform) {
-    document.getElementById("install-steps-ios").hidden = platform !== "ios";
-    document.getElementById("install-steps-android").hidden = platform !== "android";
-    modal.querySelectorAll(".install-tab").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.platform === platform);
-    });
-  }
-
-  function initInstallModal() {
-    const modal = document.getElementById("install-modal");
-    if (!modal) return;
-
-    let dismissed = false;
-    try {
-      dismissed = localStorage.getItem(INSTALL_DISMISS_KEY) === "1";
-    } catch (err) {
-      // localStorage unavailable (private browsing, etc.) — fall through
-      // and just show the prompt without persistence.
-    }
-
-    if (isStandalone() || dismissed) {
-      modal.remove();
-      return;
-    }
-
-    showInstallTab(modal, detectInstallPlatform());
-    modal.querySelectorAll(".install-tab").forEach((btn) => {
-      btn.addEventListener("click", () => showInstallTab(modal, btn.dataset.platform));
-    });
-
-    const dismiss = () => {
-      try {
-        localStorage.setItem(INSTALL_DISMISS_KEY, "1");
-      } catch (err) {
-        // ignore — nothing to persist to
-      }
-      modal.remove();
-    };
-
-    document.getElementById("install-modal-x").addEventListener("click", dismiss);
-    document.getElementById("install-modal-dismiss").addEventListener("click", dismiss);
-    document.getElementById("install-modal-later").addEventListener("click", dismiss);
-
-    modal.hidden = false;
-  }
-
-  // ---------------------------------------------------------------
   // Init
   // ---------------------------------------------------------------
   async function init() {
-    initInstallModal();
     initTreatsSection();
     populateFormOptions();
     renderMenu();

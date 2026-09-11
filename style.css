@@ -93,122 +93,6 @@ h1, h2 {
   padding: 10px 12px;
 }
 
-.install-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  background: rgba(36, 26, 16, 0.72);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.install-modal {
-  position: relative;
-  background: var(--wolfie-white);
-  border: 3px solid var(--ink);
-  border-radius: 20px;
-  padding: 30px 24px 24px;
-  max-width: 380px;
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
-}
-
-.install-modal-x {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 30px;
-  height: 30px;
-  border: 2px solid var(--ink);
-  border-radius: 50%;
-  background: var(--wolfie-cream);
-  color: var(--ink);
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.install-modal-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-  border: 2px solid var(--ink);
-  margin-bottom: 12px;
-}
-
-.install-modal h2 {
-  font-size: 1.35rem;
-  margin: 0 0 8px;
-  color: var(--wolfie-copper-dark);
-}
-
-.install-modal > p {
-  color: var(--text-muted);
-  font-weight: 700;
-  font-size: 0.92rem;
-  margin: 0 0 18px;
-}
-
-.install-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.install-tab {
-  flex: 1;
-  font-family: "Fredoka", sans-serif;
-  font-weight: 700;
-  font-size: 0.82rem;
-  padding: 10px 6px;
-  border: 2px solid var(--ink);
-  border-radius: 10px;
-  background: var(--wolfie-cream);
-  color: var(--ink);
-}
-
-.install-tab.active {
-  background: var(--wolfie-gold);
-  box-shadow: 0 3px 0 var(--wolfie-gold-dark);
-}
-
-.install-steps {
-  text-align: left;
-  margin: 0 0 20px;
-  padding-left: 22px;
-  font-size: 0.9rem;
-  line-height: 1.55;
-  color: var(--text-dark);
-}
-
-.install-steps li {
-  margin-bottom: 8px;
-}
-
-.install-modal .btn-primary {
-  width: 100%;
-  justify-content: center;
-}
-
-.install-later {
-  display: block;
-  width: 100%;
-  margin-top: 10px;
-  background: none;
-  border: none;
-  box-shadow: none;
-  color: var(--text-muted);
-  font-family: "Fredoka", sans-serif;
-  font-weight: 700;
-  font-size: 0.85rem;
-  text-decoration: underline;
-  padding: 6px;
-}
-
 .toolbar-btn {
   position: relative;
   width: 36px;
@@ -832,25 +716,26 @@ button:active {
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
-    transparent 25px,
-    rgba(36, 26, 16, 0.1) 25px,
-    rgba(36, 26, 16, 0.1) 26px
+    transparent 23px,
+    rgba(36, 26, 16, 0.1) 23px,
+    rgba(36, 26, 16, 0.1) 24px
   );
 }
 
 .chart-bar {
   position: absolute;
-  left: 3px;
-  right: 3px;
-  border: 1.5px solid var(--ink);
-  border-radius: 5px;
+  left: 2px;
+  right: 2px;
+  border: 1px solid var(--ink);
+  border-radius: 4px;
   background: var(--wolfie-copper);
   color: var(--wolfie-white);
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   font-weight: 700;
-  line-height: 1.2;
-  padding: 2px 4px;
+  line-height: 1.05;
+  padding: 1px 3px;
   overflow: hidden;
+  white-space: nowrap;
 }
 
 /* --- power-up shop (meals) --- */
