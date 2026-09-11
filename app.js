@@ -45,7 +45,7 @@
       if (!id) {
         const res = await fetch(JSONBLOB_BASE, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "text/plain;charset=UTF-8" },
           body: JSON.stringify({ watchBlocks: [] }),
         });
         if (!res.ok) throw new Error(`jsonblob.com returned an error (status ${res.status}).`);
@@ -78,7 +78,7 @@
 
     const res = await fetch(JSONBLOB_BASE, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
       body: JSON.stringify({ watchBlocks: [] }),
     });
     if (!res.ok) throw new Error("Could not create shared schedule storage.");
@@ -103,7 +103,7 @@
   async function saveBlocks(blocks) {
     const res = await fetch(blobUrl, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
       body: JSON.stringify({ watchBlocks: blocks }),
     });
     if (!res.ok) throw new Error("Could not save the schedule.");
