@@ -1,4 +1,4 @@
-const CACHE_NAME = "wolfies-watch-v2";
+const CACHE_NAME = "wolfies-watch-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -6,9 +6,9 @@ const ASSETS = [
   "./app.js",
   "./config.js",
   "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./favicon-32.png",
+  "./icon-192-v2.png",
+  "./icon-512-v2.png",
+  "./favicon-32-v2.png",
   "./hero-logo.png",
 ];
 
