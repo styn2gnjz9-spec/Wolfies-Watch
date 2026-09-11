@@ -48,6 +48,14 @@ h1, h2 {
   font-weight: 400;
 }
 
+.icon-inline {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  vertical-align: -0.1em;
+  flex: none;
+}
+
 .logo {
   font-family: "Rye", cursive;
   letter-spacing: 1px;

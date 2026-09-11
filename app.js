@@ -3,6 +3,11 @@
 
   const REFRESH_MS = 15000;
 
+  const BOOT_ICON =
+    '<svg class="icon-inline" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><path d="M46 2 L68 2 C74 2 77 6 77 12 L77 46 C77 53 82 57 89 61 C96 65 98 70 98 77 L98 85 C98 90 94 94 89 94 L23 94 C16 94 8 92 3 87 C-1 83 1 77 7 75 L20 71 C30 68 38 63 41 55 L42 12 C42 6 43 2 46 2 Z"/></svg>';
+  const SADDLE_ICON =
+    '<svg class="icon-inline" viewBox="0 0 100 70" fill="currentColor" aria-hidden="true"><rect x="10" y="42" width="80" height="16" rx="8"/><circle cx="22" cy="26" r="11"/><rect x="17" y="30" width="10" height="16" rx="4"/><rect x="66" y="24" width="20" height="24" rx="8"/></svg>';
+
   // Firebase Realtime Database REST API. A trailing slash is optional in
   // config.js; strip it here so URL-building below is consistent.
   const FIREBASE_URL = (window.FIREBASE_DB_URL || "").trim().replace(/\/+$/, "");
@@ -223,7 +228,7 @@
       console.error(err);
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = editingId ? "💾 SAVE CHANGES" : "🤠 SADDLE UP";
+      submitBtn.innerHTML = editingId ? "💾 SAVE CHANGES" : `${SADDLE_ICON} SADDLE UP`;
     }
   }
 
@@ -231,8 +236,8 @@
     const heading = document.getElementById("claim-quest-heading");
     const submitBtn = document.querySelector("#shift-form .btn-primary");
     const cancelBtn = document.getElementById("cancel-edit-btn");
-    heading.textContent = isEditing ? "✎ Editing Quest" : "🤠 Sign Up, Deputy";
-    submitBtn.textContent = isEditing ? "💾 SAVE CHANGES" : "🤠 SADDLE UP";
+    heading.innerHTML = isEditing ? "✎ Editing Quest" : `${BOOT_ICON} Sign Up, Deputy`;
+    submitBtn.innerHTML = isEditing ? "💾 SAVE CHANGES" : `${SADDLE_ICON} SADDLE UP`;
     cancelBtn.hidden = !isEditing;
   }
 
