@@ -687,6 +687,21 @@
 
   async function refreshTreats() {
     if (!TREATS_URL) return;
+    // renderTreats() rebuilds the whole list's HTML, which would reset
+    // every open comment panel closed and wipe out anything typed into
+    // a reply box mid-keystroke. Skip this background refresh cycle
+    // while the user is actively focused in there; it'll pick up
+    // whatever changed on the next poll instead.
+    const list = document.getElementById("treats-list");
+    const active = document.activeElement;
+    if (
+      list &&
+      active &&
+      list.contains(active) &&
+      (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
+    ) {
+      return;
+    }
     try {
       treatCache = await loadTreats();
       renderTreats();
