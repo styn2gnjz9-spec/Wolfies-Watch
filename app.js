@@ -100,7 +100,7 @@
 
         const cards = dayBlocks.length
           ? dayBlocks.map(renderQuestCard).join("")
-          : `<p class="day-empty">NEEDS A DEPUTY</p>`;
+          : `<button type="button" class="day-empty" data-claim-day="${day.date}">NEEDS A DEPUTY</button>`;
 
         return `
         <div class="day-column">
@@ -120,6 +120,16 @@
     board.querySelectorAll("[data-edit-id]").forEach((btn) => {
       btn.addEventListener("click", () => handleEdit(btn.dataset.editId));
     });
+    board.querySelectorAll("[data-claim-day]").forEach((btn) => {
+      btn.addEventListener("click", () => handleClaimDay(btn.dataset.claimDay));
+    });
+  }
+
+  function handleClaimDay(date) {
+    if (editingId) handleCancelEdit();
+    document.getElementById("f-day").value = date;
+    document.getElementById("claim-quest").scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("f-name").focus();
   }
 
   function renderQuestCard(block) {

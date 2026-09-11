@@ -375,6 +375,7 @@ button:active {
 }
 
 .day-empty {
+  width: 100%;
   font-family: "Fredoka", sans-serif;
   font-weight: 700;
   font-size: 0.85rem;
@@ -386,7 +387,12 @@ button:active {
   display: flex;
   align-items: center;
   gap: 8px;
+  text-align: left;
   animation: bob 1.8s ease-in-out infinite;
+}
+
+.day-empty:hover {
+  background: var(--wolfie-gold-dark);
 }
 
 .day-empty::before {
