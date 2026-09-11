@@ -226,7 +226,7 @@ h1, h2 {
   position: absolute;
   z-index: 2;
   left: 50%;
-  bottom: -30px;
+  top: 36px;
   width: 280px;
   margin-left: -140px;
   max-width: none;
@@ -475,7 +475,7 @@ button:active {
   font-family: "Fredoka", sans-serif;
   font-weight: 700;
   font-size: 1rem;
-  color: var(--ink);
+  color: var(--wolfie-white);
 }
 
 .day-label {
@@ -495,7 +495,7 @@ button:active {
   font-family: "Fredoka", sans-serif;
   font-weight: 700;
   font-size: 0.85rem;
-  color: var(--ink);
+  color: var(--wolfie-white);
   background: var(--wolfie-gold);
   border: 2px solid var(--ink);
   border-radius: 10px;
@@ -691,7 +691,7 @@ button:active {
   .hero-wolfie {
     width: 340px;
     margin-left: -170px;
-    bottom: -32px;
+    top: 42px;
   }
 }
 
