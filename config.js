@@ -33,21 +33,21 @@ window.ACTIVITY_TYPES = [
 // Wolfie's meal menu — edit amounts/times to match his real routine!
 window.MEAL_MENU = [
   {
-    course: "Breakfast Buffet",
+    course: "Sunrise Fare",
     time: "~7:00–8:00 AM",
-    items: ["1 cup kibble", "splash of water refresh"],
+    items: ["Sizzlin' Beggin' Strip Bacon"],
     icon: "🥣",
   },
   {
-    course: "Midday Snack",
+    course: "The Noon Table",
     time: "~12:00 PM (long days only)",
-    items: ["a few training treats", "water bowl check"],
+    items: ["Sizzlin' Beggin' Strip Bacon", "Prospector Water", "Lunch Time Kibble"],
     icon: "🦴",
   },
   {
-    course: "Dinner Feast",
+    course: "Homestead Supper",
     time: "~5:30–6:30 PM",
-    items: ["1 cup kibble", "fresh water"],
+    items: ["Cowboy Thanksgiving — High-Desert Roasted Turkey & Ma's Sweet Potatoes"],
     icon: "🍖",
   },
   {
