@@ -781,16 +781,6 @@
     hasHat: true,
   };
 
-  const MARCO_PALETTE = {
-    coat: "#b3452b",
-    dark: "#241210",
-    light: "#e3c6a6",
-    hat: null,
-    hatBand: null,
-    bandana: "#5c1414",
-    hasHat: false,
-  };
-
   function randInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
@@ -799,12 +789,12 @@
     return list[randInt(0, list.length - 1)];
   }
 
-  function drawTrailLeg(ctx, x, swingPx, color) {
+  function drawTrailLeg(ctx, x, swingPx, color, w, h) {
     ctx.fillStyle = color;
     ctx.save();
     ctx.translate(x, 6);
     ctx.rotate(swingPx * 0.02);
-    ctx.fillRect(-4, 0, 8, 15);
+    ctx.fillRect(-w / 2, 0, w, h);
     ctx.restore();
   }
 
@@ -828,8 +818,8 @@
     const bodyStretch = pose === "jump" ? -4 : 0;
 
     // legs (behind body)
-    drawTrailLeg(ctx, -12, -swing, palette.dark);
-    drawTrailLeg(ctx, 9, swing, palette.dark);
+    drawTrailLeg(ctx, -12, -swing, palette.dark, 8, 15);
+    drawTrailLeg(ctx, 9, swing, palette.dark, 8, 15);
 
     // tail
     ctx.fillStyle = palette.coat;
@@ -908,6 +898,117 @@
       ctx.fill();
       ctx.fillStyle = palette.hatBand;
       ctx.fillRect(10, -32 + bodyStretch, 12, 2.4);
+    }
+
+    ctx.restore();
+  }
+
+  // Marco: a stockier bulldog-type rival with floppy ears, an underbite,
+  // and a spiked collar — a different silhouette from Wolfie, not just a
+  // recolor. Same 64x64 reference box, facing right by default.
+  function drawMarcoDog(ctx, size, runPhase, pose) {
+    const s = size / 64;
+    const coat = "#5b5854";
+    const coatDark = "#38352f";
+    const light = "#c9c2b4";
+    const collar = "#8a1f1f";
+    const spike = "#d8d3c8";
+
+    ctx.save();
+    ctx.scale(s, s);
+
+    if (pose === "hide") {
+      ctx.translate(0, 21);
+      ctx.scale(1, 0.55);
+      ctx.translate(0, -21);
+    }
+
+    const swing = pose === "run" ? Math.sin(runPhase) * 8 : 0;
+    const bodyStretch = pose === "jump" ? -4 : 0;
+
+    // stubby, thicker legs
+    drawTrailLeg(ctx, -10, -swing, coatDark, 10, 11);
+    drawTrailLeg(ctx, 8, swing, coatDark, 10, 11);
+
+    // short tail stub
+    ctx.fillStyle = coat;
+    ctx.beginPath();
+    ctx.ellipse(-21, -5 + bodyStretch, 5, 4, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // wide, stocky body
+    ctx.fillStyle = coat;
+    ctx.beginPath();
+    ctx.ellipse(-4, -2 + bodyStretch, 20, 13, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // brindle patch
+    ctx.fillStyle = coatDark;
+    ctx.beginPath();
+    ctx.ellipse(-8, -9 + bodyStretch, 13, 6, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // big square head
+    ctx.fillStyle = coatDark;
+    ctx.beginPath();
+    ctx.ellipse(20, -6 + bodyStretch, 14, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // flat wide muzzle
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.ellipse(30, -1 + bodyStretch, 9, 7.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // underbite tooth
+    ctx.fillStyle = "#f2ede2";
+    ctx.beginPath();
+    ctx.moveTo(32, 3 + bodyStretch);
+    ctx.lineTo(35, 3 + bodyStretch);
+    ctx.lineTo(33.4, 7 + bodyStretch);
+    ctx.closePath();
+    ctx.fill();
+
+    // nose
+    ctx.fillStyle = "#160e08";
+    ctx.beginPath();
+    ctx.ellipse(37, -3 + bodyStretch, 3, 2.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // floppy hanging ear (instead of Wolfie's pointy erect ear)
+    ctx.fillStyle = coatDark;
+    ctx.beginPath();
+    ctx.moveTo(12, -14 + bodyStretch);
+    ctx.quadraticCurveTo(7, -6 + bodyStretch, 12, 3 + bodyStretch);
+    ctx.quadraticCurveTo(19, 1 + bodyStretch, 17, -12 + bodyStretch);
+    ctx.closePath();
+    ctx.fill();
+
+    // angry brow
+    ctx.strokeStyle = "#160e08";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(17, -14 + bodyStretch);
+    ctx.lineTo(25, -11 + bodyStretch);
+    ctx.stroke();
+
+    // eye
+    ctx.fillStyle = "#160e08";
+    ctx.beginPath();
+    ctx.arc(24, -7 + bodyStretch, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // spiked collar
+    ctx.fillStyle = collar;
+    ctx.fillRect(9, -3 + bodyStretch, 13, 5);
+    ctx.fillStyle = spike;
+    for (const sx of [10, 14.5, 19]) {
+      ctx.beginPath();
+      ctx.moveTo(sx, -3 + bodyStretch);
+      ctx.lineTo(sx + 2, -6.5 + bodyStretch);
+      ctx.lineTo(sx + 4, -3 + bodyStretch);
+      ctx.closePath();
+      ctx.fill();
     }
 
     ctx.restore();
@@ -1165,7 +1266,7 @@
     ctx.save();
     ctx.translate(ob.x, ob.cy);
     ctx.scale(-1, 1);
-    drawTrailDog(ctx, ob.h, MARCO_PALETTE, runPhase, "run");
+    drawMarcoDog(ctx, ob.h, runPhase, "run");
     ctx.restore();
   }
 
