@@ -770,8 +770,26 @@
   const MARCO_HIT_MSGS = ["Marco barrels right into Wolfie! Old rivalries die hard. 🐕‍🦺💥", "Marco snaps at Wolfie's tail! 😤", "Dog park drama strikes again! 🥊"];
 
   let trail = null;
-  let wolfieTrailImg = null;
-  let marcoTrailImg = null;
+
+  const WOLFIE_PALETTE = {
+    coat: "#c9944f",
+    dark: "#221d1a",
+    light: "#faf3e4",
+    hat: "#7a4f24",
+    hatBand: "#d8b25c",
+    bandana: "#2b2f38",
+    hasHat: true,
+  };
+
+  const MARCO_PALETTE = {
+    coat: "#b3452b",
+    dark: "#241210",
+    light: "#e3c6a6",
+    hat: null,
+    hatBand: null,
+    bandana: "#5c1414",
+    hasHat: false,
+  };
 
   function randInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -781,33 +799,118 @@
     return list[randInt(0, list.length - 1)];
   }
 
-  function tintTrailImage(img, color) {
-    const c = document.createElement("canvas");
-    c.width = img.naturalWidth || 200;
-    c.height = img.naturalHeight || 200;
-    const cx = c.getContext("2d");
-    cx.drawImage(img, 0, 0, c.width, c.height);
-    cx.globalCompositeOperation = "multiply";
-    cx.fillStyle = color;
-    cx.fillRect(0, 0, c.width, c.height);
-    cx.globalCompositeOperation = "destination-in";
-    cx.drawImage(img, 0, 0, c.width, c.height);
-    return c;
+  function drawTrailLeg(ctx, x, swingPx, color) {
+    ctx.fillStyle = color;
+    ctx.save();
+    ctx.translate(x, 6);
+    ctx.rotate(swingPx * 0.02);
+    ctx.fillRect(-4, 0, 8, 15);
+    ctx.restore();
   }
 
-  function ensureTrailImages(cb) {
-    if (wolfieTrailImg) {
-      cb();
-      return;
+  // Hand-drawn side-profile running dog, facing right by default (flip via
+  // ctx.scale(-1, 1) before calling to face left). Origin is the dog's
+  // center; drawn inside a 64x64 reference box, scaled to `size` px tall.
+  function drawTrailDog(ctx, size, palette, runPhase, pose) {
+    const s = size / 64;
+    ctx.save();
+    ctx.scale(s, s);
+
+    if (pose === "hide") {
+      // squash toward the ground-contact line (y=21) so ducking reads as
+      // a real crouch, not just a shift.
+      ctx.translate(0, 21);
+      ctx.scale(1, 0.55);
+      ctx.translate(0, -21);
     }
-    const img = new Image();
-    img.onload = () => {
-      wolfieTrailImg = img;
-      marcoTrailImg = tintTrailImage(img, "#b3241f");
-      cb();
-    };
-    img.onerror = () => cb();
-    img.src = "hero-logo.png";
+
+    const swing = pose === "run" ? Math.sin(runPhase) * 10 : 0;
+    const bodyStretch = pose === "jump" ? -4 : 0;
+
+    // legs (behind body)
+    drawTrailLeg(ctx, -12, -swing, palette.dark);
+    drawTrailLeg(ctx, 9, swing, palette.dark);
+
+    // tail
+    ctx.fillStyle = palette.coat;
+    ctx.beginPath();
+    ctx.moveTo(-22, -3 + bodyStretch);
+    ctx.quadraticCurveTo(-33, -15 + bodyStretch, -25, -23 + bodyStretch);
+    ctx.quadraticCurveTo(-18, -17 + bodyStretch, -18, -5 + bodyStretch);
+    ctx.closePath();
+    ctx.fill();
+
+    // body
+    ctx.fillStyle = palette.coat;
+    ctx.beginPath();
+    ctx.ellipse(-5, -3 + bodyStretch, 21, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // dark saddle patch on back
+    ctx.fillStyle = palette.dark;
+    ctx.beginPath();
+    ctx.ellipse(-7, -9 + bodyStretch, 15, 6.5, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // head (dark crown)
+    ctx.fillStyle = palette.dark;
+    ctx.beginPath();
+    ctx.ellipse(19, -9 + bodyStretch, 12, 11, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // muzzle
+    ctx.fillStyle = palette.light;
+    ctx.beginPath();
+    ctx.ellipse(27, -3 + bodyStretch, 8, 6.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // nose
+    ctx.fillStyle = "#160e08";
+    ctx.beginPath();
+    ctx.ellipse(34, -4 + bodyStretch, 2.6, 2.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ear
+    ctx.fillStyle = palette.dark;
+    ctx.beginPath();
+    ctx.moveTo(13, -18 + bodyStretch);
+    ctx.quadraticCurveTo(9, -29 + bodyStretch, 17, -31 + bodyStretch);
+    ctx.quadraticCurveTo(23, -24 + bodyStretch, 19, -15 + bodyStretch);
+    ctx.closePath();
+    ctx.fill();
+
+    // bandana
+    ctx.fillStyle = palette.bandana;
+    ctx.beginPath();
+    ctx.moveTo(12, -2 + bodyStretch);
+    ctx.lineTo(22, -2 + bodyStretch);
+    ctx.lineTo(16, 8 + bodyStretch);
+    ctx.closePath();
+    ctx.fill();
+
+    // eye
+    ctx.fillStyle = "#160e08";
+    ctx.beginPath();
+    ctx.arc(23, -10 + bodyStretch, 1.9, 0, Math.PI * 2);
+    ctx.fill();
+
+    // sheriff hat (Wolfie only)
+    if (palette.hasHat) {
+      ctx.fillStyle = palette.hat;
+      ctx.beginPath();
+      ctx.ellipse(16, -29 + bodyStretch, 12.5, 3.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(9, -30 + bodyStretch);
+      ctx.quadraticCurveTo(12, -41 + bodyStretch, 20, -41 + bodyStretch);
+      ctx.quadraticCurveTo(26, -37 + bodyStretch, 22, -30 + bodyStretch);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = palette.hatBand;
+      ctx.fillRect(10, -32 + bodyStretch, 12, 2.4);
+    }
+
+    ctx.restore();
   }
 
   function showTrailStatus(msg) {
@@ -852,8 +955,6 @@
       nextTreatAt: 220,
       obstacles: [],
       treatItems: [],
-      wolfieImg: wolfieTrailImg,
-      marcoImg: marcoTrailImg,
       player: { state: "run", y: 0, vy: 0, hideUntil: 0 },
     };
 
@@ -862,13 +963,6 @@
     document.getElementById("trail-play").hidden = false;
     showTrailStatus("");
     renderTrailHud();
-
-    ensureTrailImages(() => {
-      if (trail) {
-        trail.wolfieImg = wolfieTrailImg;
-        trail.marcoImg = marcoTrailImg;
-      }
-    });
 
     trail.rafId = requestAnimationFrame(trailLoop);
   }
@@ -1054,43 +1148,24 @@
   function drawTrailPlayer() {
     const ctx = trail.ctx;
     const p = trail.player;
-    let h = PLAYER_SIZE;
-    let cy = GROUND_Y - PLAYER_SIZE / 2 + p.y;
-    if (p.state === "hide") {
-      h = PLAYER_SIZE * 0.55;
-      cy = GROUND_Y - h / 2;
-    }
     const cx = PLAYER_X + PLAYER_SIZE / 2;
+    const cy = GROUND_Y - PLAYER_SIZE / 2 + p.y;
     const bob = p.state === "run" ? Math.sin(trail.distance / 10) * 3 : 0;
-    const tilt = p.state === "jump" ? -0.15 : 0;
+    const runPhase = trail.distance / 8;
 
     ctx.save();
     ctx.translate(cx, cy + bob);
-    ctx.rotate(tilt);
-    if (trail.wolfieImg) {
-      ctx.drawImage(trail.wolfieImg, -h / 2, -h / 2, h, h);
-    } else {
-      ctx.font = `${h}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("🐺", 0, 0);
-    }
+    drawTrailDog(ctx, PLAYER_SIZE, WOLFIE_PALETTE, runPhase, p.state);
     ctx.restore();
   }
 
   function drawTrailMarco(ob) {
     const ctx = trail.ctx;
+    const runPhase = trail.distance / 6;
     ctx.save();
     ctx.translate(ob.x, ob.cy);
     ctx.scale(-1, 1);
-    if (trail.marcoImg) {
-      ctx.drawImage(trail.marcoImg, -ob.h / 2, -ob.h / 2, ob.h, ob.h);
-    } else {
-      ctx.font = `${ob.h}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("🐕", 0, 0);
-    }
+    drawTrailDog(ctx, ob.h, MARCO_PALETTE, runPhase, "run");
     ctx.restore();
   }
 
