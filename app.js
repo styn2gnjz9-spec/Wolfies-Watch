@@ -774,6 +774,43 @@
     ],
   };
 
+  const STANDOFF_CHANCE = 0.18;
+
+  const STANDOFFS = [
+    {
+      prompt: "🤠 An outlaw steps out from behind a cactus, hand on his holster: \"Toll's one treat, mutt.\"",
+      choices: [
+        { label: "Pay the toll", health: 0, treats: -1, bonusMiles: 15, text: "Wolfie tosses over a treat. The outlaw tips his hat and lets him pass. 🤠" },
+        { label: "Stare him down", health: -12, treats: 0, bonusMiles: 5, text: "A tense standoff! Wolfie wins the stare-down but takes a scrape gettin' by. 😬" },
+        { label: "Bolt past", health: -6, treats: 0, bonusMiles: 30, text: "Wolfie zooms past before the outlaw can blink! 💨" },
+      ],
+    },
+    {
+      prompt: "🌉 A rickety rope bridge creaks over a canyon. Cross it?",
+      choices: [
+        { label: "Cross carefully", health: -5, treats: 0, bonusMiles: 20, text: "Slow and steady — a few bruises but Wolfie makes it across. 🪵" },
+        { label: "Sprint across", health: -15, treats: 0, bonusMiles: 35, text: "Bold move! The bridge groans but holds just long enough. 😱" },
+        { label: "Go around", health: 5, treats: 0, bonusMiles: 5, text: "The long way round is safe and Wolfie even finds a nap spot. 😌" },
+      ],
+    },
+    {
+      prompt: "🌪️ A dust storm rolls in fast! What's the play?",
+      choices: [
+        { label: "Push through it", health: -18, treats: 0, bonusMiles: 25, text: "Grit in the eyes but Wolfie powers through the storm. 🌬️" },
+        { label: "Hunker down", health: 8, treats: 0, bonusMiles: 0, text: "Wolfie curls up and waits it out safe and sound. 🐕" },
+        { label: "Follow the fence", health: -4, treats: 1, bonusMiles: 12, text: "Sticking to the fence, Wolfie even finds a stray treat! 🦴" },
+      ],
+    },
+    {
+      prompt: "🐍 A rattlesnake coils up right in the path, rattlin' a warning!",
+      choices: [
+        { label: "Back away slow", health: 0, treats: 0, bonusMiles: 8, text: "Wolfie backs off nice and slow — no trouble here. 😌" },
+        { label: "Hop around it", health: -10, treats: 0, bonusMiles: 20, text: "A risky hop clears the snake but Wolfie lands rough. 🤕" },
+        { label: "Growl it off", health: -3, treats: 0, bonusMiles: 15, text: "A confident growl sends the snake slitherin' away. 🐺" },
+      ],
+    },
+  ];
+
   let trail = null;
 
   function pickWeighted(options) {
@@ -807,6 +844,12 @@
     document.getElementById("trail-log").innerHTML = trail.log
       .map((msg) => `<div>${escapeHtml(msg)}</div>`)
       .join("");
+
+    const sprite = document.getElementById("trail-sprite");
+    if (sprite) {
+      const pct = Math.min(92, Math.max(2, (trail.miles / TRAIL_GOAL_MILES) * 90 + 2));
+      sprite.style.left = `${pct}%`;
+    }
   }
 
   function trailEnd(won) {
@@ -818,25 +861,82 @@
     endEl.hidden = false;
   }
 
-  function trailAction(action) {
-    if (!trail) return;
-    const [minM, maxM] = TRAIL_ACTION_MILES[action];
-    const event = pickWeighted(TRAIL_EVENTS[action]);
-
-    trail.miles = Math.min(TRAIL_GOAL_MILES, trail.miles + randInt(minM, maxM));
-    trail.health = Math.max(0, Math.min(100, trail.health + event.health));
-    trail.treats += event.treats;
-    trail.day += 1;
-    trail.log.unshift(event.text);
-    trail.log = trail.log.slice(0, 6);
-
-    renderTrail();
-
+  function checkTrailEnd() {
     if (trail.health <= 0) {
       trailEnd(false);
     } else if (trail.miles >= TRAIL_GOAL_MILES) {
       trailEnd(true);
     }
+  }
+
+  function trailAction(action) {
+    if (!trail || trail.pendingStandoff) return;
+
+    if (Math.random() < STANDOFF_CHANCE) {
+      startStandoff();
+      return;
+    }
+
+    const [minM, maxM] = TRAIL_ACTION_MILES[action];
+    const event = pickWeighted(TRAIL_EVENTS[action]);
+
+    trail.miles = Math.min(TRAIL_GOAL_MILES, trail.miles + randInt(minM, maxM));
+    trail.health = Math.max(0, Math.min(100, trail.health + event.health));
+    trail.treats = Math.max(0, trail.treats + event.treats);
+    trail.day += 1;
+    trail.log.unshift(event.text);
+    trail.log = trail.log.slice(0, 6);
+
+    renderTrail();
+    checkTrailEnd();
+  }
+
+  function startStandoff() {
+    const standoff = STANDOFFS[randInt(0, STANDOFFS.length - 1)];
+    trail.pendingStandoff = standoff;
+    renderStandoff(standoff);
+  }
+
+  function renderStandoff(standoff) {
+    const actionsEl = document.getElementById("trail-actions");
+    actionsEl.innerHTML =
+      `<p class="trail-standoff-prompt">${escapeHtml(standoff.prompt)}</p>` +
+      standoff.choices
+        .map(
+          (choice, idx) =>
+            `<button type="button" class="btn-secondary" data-standoff-choice="${idx}">${escapeHtml(choice.label)}</button>`
+        )
+        .join("");
+    actionsEl.querySelectorAll("[data-standoff-choice]").forEach((btn) => {
+      btn.addEventListener("click", () => resolveStandoff(standoff, Number(btn.dataset.standoffChoice)));
+    });
+  }
+
+  function resolveStandoff(standoff, idx) {
+    const choice = standoff.choices[idx];
+    trail.pendingStandoff = null;
+    trail.miles = Math.min(TRAIL_GOAL_MILES, trail.miles + choice.bonusMiles);
+    trail.health = Math.max(0, Math.min(100, trail.health + choice.health));
+    trail.treats = Math.max(0, trail.treats + choice.treats);
+    trail.day += 1;
+    trail.log.unshift(choice.text);
+    trail.log = trail.log.slice(0, 6);
+
+    renderTrail();
+    restoreNormalActions();
+    checkTrailEnd();
+  }
+
+  function restoreNormalActions() {
+    const actionsEl = document.getElementById("trail-actions");
+    actionsEl.innerHTML = `
+      <button type="button" class="btn-secondary" data-trail-action="push">🐾 Push On</button>
+      <button type="button" class="btn-secondary" data-trail-action="rest">🍖 Rest &amp; Feast</button>
+      <button type="button" class="btn-secondary" data-trail-action="sniff">🔍 Sniff Around</button>
+    `;
+    actionsEl.querySelectorAll("[data-trail-action]").forEach((btn) => {
+      btn.addEventListener("click", () => trailAction(btn.dataset.trailAction));
+    });
   }
 
   function initTrailGame() {
