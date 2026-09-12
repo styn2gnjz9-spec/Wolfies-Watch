@@ -743,209 +743,475 @@
   }
 
   // ---------------------------------------------------------------
-  // Sheriff Wolfie's Trail (mini game)
+  // Sheriff Wolfie's Trail (mini game) — endless side-scrolling runner
   // ---------------------------------------------------------------
   const TRAIL_GOAL_MILES = 400;
+  const PX_PER_MILE = 40;
+  const WIN_DISTANCE = TRAIL_GOAL_MILES * PX_PER_MILE;
 
-  const TRAIL_ACTION_MILES = {
-    push: [40, 65],
-    rest: [5, 15],
-    sniff: [20, 35],
-  };
+  const LOGICAL_W = 640;
+  const LOGICAL_H = 220;
+  const GROUND_Y = 175;
+  const PLAYER_X = 70;
+  const PLAYER_SIZE = 46;
+  const TRIGGER_X = PLAYER_X + PLAYER_SIZE / 2;
 
-  const TRAIL_EVENTS = {
-    push: [
-      { chance: 0.5, health: 0, treats: 0, text: "Wolfie trots along steadily. Nothin' but open trail." },
-      { chance: 0.2, health: -10, treats: 0, text: "A rocky patch! Wolfie's paws are sore. 😖" },
-      { chance: 0.15, health: 5, treats: 0, text: "A cool breeze picks up — Wolfie feels great! 🌬️" },
-      { chance: 0.15, health: 0, treats: 1, text: "Wolfie spots a treat stashed by the trail! 🦴" },
-    ],
-    rest: [
-      { chance: 0.4, health: 15, treats: 0, text: "A good nap in the shade. Wolfie feels refreshed. 😴" },
-      { chance: 0.3, health: 10, treats: 1, text: "Snack time turns up a bonus treat! 🍖" },
-      { chance: 0.2, health: 5, treats: 0, text: "Wolfie stretches and rolls in the grass. 🌾" },
-      { chance: 0.1, health: -5, treats: 0, text: "A pesky fly won't leave Wolfie alone. 🪰" },
-    ],
-    sniff: [
-      { chance: 0.35, health: 0, treats: 1, text: "Nose to the ground — jackpot, a treat! 🦴" },
-      { chance: 0.25, health: 0, treats: 0, text: "Just tumbleweeds and dust out here." },
-      { chance: 0.2, health: -8, treats: 0, text: "A startled rattlesnake! Wolfie backs off quick. 🐍" },
-      { chance: 0.2, health: 8, treats: 2, text: "A whole trail of treats! Someone's been careless. 🦴🦴" },
-    ],
-  };
+  const GRAVITY = 0.85;
+  const JUMP_VELOCITY = -12.5;
+  const HIDE_MS = 650;
+  const BASE_SPEED = 3.2;
+  const MAX_SPEED = 6.5;
 
-  const STANDOFF_CHANCE = 0.18;
-
-  const STANDOFFS = [
-    {
-      prompt: "🤠 An outlaw steps out from behind a cactus, hand on his holster: \"Toll's one treat, mutt.\"",
-      choices: [
-        { label: "Pay the toll", health: 0, treats: -1, bonusMiles: 15, text: "Wolfie tosses over a treat. The outlaw tips his hat and lets him pass. 🤠" },
-        { label: "Stare him down", health: -12, treats: 0, bonusMiles: 5, text: "A tense standoff! Wolfie wins the stare-down but takes a scrape gettin' by. 😬" },
-        { label: "Bolt past", health: -6, treats: 0, bonusMiles: 30, text: "Wolfie zooms past before the outlaw can blink! 💨" },
-      ],
-    },
-    {
-      prompt: "🌉 A rickety rope bridge creaks over a canyon. Cross it?",
-      choices: [
-        { label: "Cross carefully", health: -5, treats: 0, bonusMiles: 20, text: "Slow and steady — a few bruises but Wolfie makes it across. 🪵" },
-        { label: "Sprint across", health: -15, treats: 0, bonusMiles: 35, text: "Bold move! The bridge groans but holds just long enough. 😱" },
-        { label: "Go around", health: 5, treats: 0, bonusMiles: 5, text: "The long way round is safe and Wolfie even finds a nap spot. 😌" },
-      ],
-    },
-    {
-      prompt: "🌪️ A dust storm rolls in fast! What's the play?",
-      choices: [
-        { label: "Push through it", health: -18, treats: 0, bonusMiles: 25, text: "Grit in the eyes but Wolfie powers through the storm. 🌬️" },
-        { label: "Hunker down", health: 8, treats: 0, bonusMiles: 0, text: "Wolfie curls up and waits it out safe and sound. 🐕" },
-        { label: "Follow the fence", health: -4, treats: 1, bonusMiles: 12, text: "Sticking to the fence, Wolfie even finds a stray treat! 🦴" },
-      ],
-    },
-    {
-      prompt: "🐍 A rattlesnake coils up right in the path, rattlin' a warning!",
-      choices: [
-        { label: "Back away slow", health: 0, treats: 0, bonusMiles: 8, text: "Wolfie backs off nice and slow — no trouble here. 😌" },
-        { label: "Hop around it", health: -10, treats: 0, bonusMiles: 20, text: "A risky hop clears the snake but Wolfie lands rough. 🤕" },
-        { label: "Growl it off", health: -3, treats: 0, bonusMiles: 15, text: "A confident growl sends the snake slitherin' away. 🐺" },
-      ],
-    },
-  ];
+  const JUMP_OK_MSGS = ["Wolfie hops clean over it! 🐾", "Nice leap, Sheriff! 🤸", "Cleared it with room to spare! ✨"];
+  const JUMP_FAIL_MSGS = ["Ouch — right into it! 😖", "Didn't clear that one. 🤕", "Should've jumped! 😵"];
+  const HIDE_OK_MSGS = ["Ducked out of sight just in time! 🙈", "Smooth dodge, Sheriff! 😎", "Never even saw him go under. 🌵"];
+  const HIDE_FAIL_MSGS = ["Whoosh — that one got him! 😵", "Should've ducked! 😬", "Right in the noggin'. 🤕"];
+  const MARCO_DODGE_MSGS = ["Marco snarls but Wolfie's already gone! 😏", "Wolfie gives ol' Marco the slip again. 💨", "Not today, Marco! 🐺"];
+  const MARCO_HIT_MSGS = ["Marco barrels right into Wolfie! Old rivalries die hard. 🐕‍🦺💥", "Marco snaps at Wolfie's tail! 😤", "Dog park drama strikes again! 🥊"];
 
   let trail = null;
-
-  function pickWeighted(options) {
-    const roll = Math.random();
-    let acc = 0;
-    for (const opt of options) {
-      acc += opt.chance;
-      if (roll <= acc) return opt;
-    }
-    return options[options.length - 1];
-  }
+  let wolfieTrailImg = null;
+  let marcoTrailImg = null;
 
   function randInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  function trailStart() {
-    trail = { health: 100, miles: 0, treats: 0, day: 1, log: ["Sheriff Wolfie sets out for LA! 🐾"] };
-    document.getElementById("trail-intro").hidden = true;
-    document.getElementById("trail-end").hidden = true;
-    document.getElementById("trail-play").hidden = false;
-    renderTrail();
+  function pickRandom(list) {
+    return list[randInt(0, list.length - 1)];
   }
 
-  function renderTrail() {
-    if (!trail) return;
-    document.getElementById("trail-health-bar").style.width = `${trail.health}%`;
-    document.getElementById("trail-miles-bar").style.width = `${(trail.miles / TRAIL_GOAL_MILES) * 100}%`;
-    document.getElementById("trail-day").textContent = trail.day;
-    document.getElementById("trail-treats").textContent = trail.treats;
-    document.getElementById("trail-log").innerHTML = trail.log
-      .map((msg) => `<div>${escapeHtml(msg)}</div>`)
-      .join("");
+  function tintTrailImage(img, color) {
+    const c = document.createElement("canvas");
+    c.width = img.naturalWidth || 200;
+    c.height = img.naturalHeight || 200;
+    const cx = c.getContext("2d");
+    cx.drawImage(img, 0, 0, c.width, c.height);
+    cx.globalCompositeOperation = "multiply";
+    cx.fillStyle = color;
+    cx.fillRect(0, 0, c.width, c.height);
+    cx.globalCompositeOperation = "destination-in";
+    cx.drawImage(img, 0, 0, c.width, c.height);
+    return c;
+  }
 
-    const sprite = document.getElementById("trail-sprite");
-    if (sprite) {
-      const pct = Math.min(92, Math.max(2, (trail.miles / TRAIL_GOAL_MILES) * 90 + 2));
-      sprite.style.left = `${pct}%`;
+  function ensureTrailImages(cb) {
+    if (wolfieTrailImg) {
+      cb();
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      wolfieTrailImg = img;
+      marcoTrailImg = tintTrailImage(img, "#b3241f");
+      cb();
+    };
+    img.onerror = () => cb();
+    img.src = "hero-logo.png";
+  }
+
+  function showTrailStatus(msg) {
+    const el = document.getElementById("trail-status");
+    if (!el) return;
+    el.textContent = msg;
+    if (trail) {
+      clearTimeout(trail.statusTimer);
+      if (msg) trail.statusTimer = setTimeout(() => { el.textContent = ""; }, 2200);
     }
   }
 
+  function renderTrailHud() {
+    if (!trail) return;
+    document.getElementById("trail-health-bar").style.width = `${trail.health}%`;
+    const milesShown = Math.min(TRAIL_GOAL_MILES, Math.floor(trail.distance / PX_PER_MILE));
+    document.getElementById("trail-miles-bar").style.width = `${(milesShown / TRAIL_GOAL_MILES) * 100}%`;
+    document.getElementById("trail-treats").textContent = trail.treats;
+  }
+
+  function trailStart() {
+    const canvas = document.getElementById("trail-canvas");
+    const ctx = canvas.getContext("2d");
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = LOGICAL_W * dpr;
+    canvas.height = LOGICAL_H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    if (trail && trail.rafId) cancelAnimationFrame(trail.rafId);
+
+    trail = {
+      ctx,
+      health: 100,
+      distance: 0,
+      treats: 0,
+      ended: false,
+      boost: false,
+      lastTs: 0,
+      statusTimer: null,
+      nextObstacleAt: 260,
+      nextMarcoAt: randInt(2600, 4200),
+      nextTreatAt: 220,
+      obstacles: [],
+      treatItems: [],
+      wolfieImg: wolfieTrailImg,
+      marcoImg: marcoTrailImg,
+      player: { state: "run", y: 0, vy: 0, hideUntil: 0 },
+    };
+
+    document.getElementById("trail-intro").hidden = true;
+    document.getElementById("trail-end").hidden = true;
+    document.getElementById("trail-play").hidden = false;
+    showTrailStatus("");
+    renderTrailHud();
+
+    ensureTrailImages(() => {
+      if (trail) {
+        trail.wolfieImg = wolfieTrailImg;
+        trail.marcoImg = marcoTrailImg;
+      }
+    });
+
+    trail.rafId = requestAnimationFrame(trailLoop);
+  }
+
   function trailEnd(won) {
+    if (!trail) return;
+    trail.ended = true;
+    if (trail.rafId) cancelAnimationFrame(trail.rafId);
     document.getElementById("trail-play").hidden = true;
     const endEl = document.getElementById("trail-end");
+    const milesShown = Math.min(TRAIL_GOAL_MILES, Math.floor(trail.distance / PX_PER_MILE));
     document.getElementById("trail-end-message").textContent = won
-      ? `🎉 Sheriff Wolfie made it to LA in ${trail.day} days with ${trail.treats} treats! What a good boy.`
-      : `😴 Sheriff Wolfie's plum tuckered out after ${trail.day} days and needs a nap back home. Try again?`;
+      ? `🎉 Sheriff Wolfie made it to LA with ${trail.treats} treats in his belly! What a good boy.`
+      : `😴 Sheriff Wolfie's plum tuckered out after ${milesShown} miles and needs a nap back home. Try again?`;
     endEl.hidden = false;
   }
 
   function checkTrailEnd() {
-    if (trail.health <= 0) {
-      trailEnd(false);
-    } else if (trail.miles >= TRAIL_GOAL_MILES) {
-      trailEnd(true);
+    if (!trail) return;
+    if (trail.health <= 0) trailEnd(false);
+  }
+
+  function trailJump() {
+    if (!trail || trail.ended) return;
+    const p = trail.player;
+    if (p.state !== "run") return;
+    p.state = "jump";
+    p.vy = JUMP_VELOCITY;
+  }
+
+  function trailHide() {
+    if (!trail || trail.ended) return;
+    const p = trail.player;
+    if (p.state !== "run") return;
+    p.state = "hide";
+    p.hideUntil = performance.now() + HIDE_MS;
+  }
+
+  function trailEat() {
+    if (!trail || trail.ended) return;
+    const px = PLAYER_X + PLAYER_SIZE / 2;
+    let target = null;
+    let bestDist = Infinity;
+    for (const t of trail.treatItems) {
+      if (t.eaten) continue;
+      if (t.x <= px + 60 && t.x >= px - 20) {
+        const d = Math.abs(t.x - px);
+        if (d < bestDist) {
+          bestDist = d;
+          target = t;
+        }
+      }
+    }
+    if (target) {
+      target.eaten = true;
+      trail.treats += 1;
+      trail.health = Math.min(100, trail.health + 4);
+      renderTrailHud();
+      showTrailStatus("Snarf! Wolfie gobbles a treat. 🦴");
     }
   }
 
-  function trailAction(action) {
-    if (!trail || trail.pendingStandoff) return;
+  function setTrailBoost(on) {
+    if (!trail) return;
+    trail.boost = on;
+  }
 
-    if (Math.random() < STANDOFF_CHANCE) {
-      startStandoff();
+  function pickObstacleKind() {
+    const roll = Math.random();
+    if (roll < 0.45) return "cactus";
+    if (roll < 0.8) return "rock";
+    return "bird";
+  }
+
+  function spawnTrailObstacle(kind) {
+    let ob;
+    if (kind === "cactus") {
+      ob = { kind, avoid: "jump", x: LOGICAL_W + 20, h: 40, cy: GROUND_Y - 20, emoji: "🌵" };
+    } else if (kind === "rock") {
+      ob = { kind, avoid: "jump", x: LOGICAL_W + 20, h: 30, cy: GROUND_Y - 15, emoji: "🪨" };
+    } else if (kind === "bird") {
+      ob = { kind, avoid: "hide", x: LOGICAL_W + 20, h: 28, cy: GROUND_Y - 78, emoji: "🐦" };
+    } else {
+      ob = { kind, avoid: "either", x: LOGICAL_W + 20, h: 46, cy: GROUND_Y - 23 };
+    }
+    ob.resolved = false;
+    trail.obstacles.push(ob);
+  }
+
+  function spawnTrailTreat() {
+    trail.treatItems.push({ x: LOGICAL_W + 20, eaten: false });
+  }
+
+  function maybeSpawnTrail() {
+    if (trail.distance >= trail.nextObstacleAt) {
+      spawnTrailObstacle(pickObstacleKind());
+      trail.nextObstacleAt = trail.distance + randInt(260, 420);
+    }
+    if (trail.distance >= trail.nextMarcoAt) {
+      spawnTrailObstacle("marco");
+      trail.nextMarcoAt = trail.distance + randInt(3200, 6000);
+    }
+    if (trail.distance >= trail.nextTreatAt) {
+      spawnTrailTreat();
+      trail.nextTreatAt = trail.distance + randInt(300, 520);
+    }
+  }
+
+  function resolveTrailObstacle(ob) {
+    ob.resolved = true;
+    const p = trail.player;
+
+    if (ob.kind === "marco") {
+      const dodged = p.state === "jump" || p.state === "hide";
+      if (dodged) {
+        showTrailStatus(pickRandom(MARCO_DODGE_MSGS));
+      } else {
+        trail.health = Math.max(0, trail.health - 22);
+        showTrailStatus(pickRandom(MARCO_HIT_MSGS));
+      }
+    } else if (ob.avoid === "jump") {
+      if (p.state === "jump") {
+        showTrailStatus(pickRandom(JUMP_OK_MSGS));
+      } else {
+        trail.health = Math.max(0, trail.health - 12);
+        showTrailStatus(pickRandom(JUMP_FAIL_MSGS));
+      }
+    } else if (ob.avoid === "hide") {
+      if (p.state === "hide") {
+        showTrailStatus(pickRandom(HIDE_OK_MSGS));
+      } else {
+        trail.health = Math.max(0, trail.health - 12);
+        showTrailStatus(pickRandom(HIDE_FAIL_MSGS));
+      }
+    }
+
+    renderTrailHud();
+    checkTrailEnd();
+  }
+
+  function updateTrail(ts, step) {
+    const p = trail.player;
+
+    if (p.state === "jump") {
+      p.vy += GRAVITY * step;
+      p.y += p.vy * step;
+      if (p.y >= 0) {
+        p.y = 0;
+        p.vy = 0;
+        p.state = "run";
+      }
+    } else if (p.state === "hide" && ts >= p.hideUntil) {
+      p.state = "run";
+    }
+
+    const rampSpeed = Math.min(MAX_SPEED, BASE_SPEED + trail.distance / 4000);
+    const speed = rampSpeed * (trail.boost ? 1.6 : 1) * step;
+    trail.distance += speed;
+
+    maybeSpawnTrail();
+
+    for (const ob of trail.obstacles) {
+      ob.x -= speed;
+      if (!ob.resolved && ob.x <= TRIGGER_X) {
+        resolveTrailObstacle(ob);
+      }
+    }
+    trail.obstacles = trail.obstacles.filter((ob) => ob.x > -60);
+
+    for (const t of trail.treatItems) {
+      t.x -= speed;
+    }
+    trail.treatItems = trail.treatItems.filter((t) => t.x > -40 && !t.eaten);
+
+    if (trail.distance >= WIN_DISTANCE) {
+      trailEnd(true);
       return;
     }
 
-    const [minM, maxM] = TRAIL_ACTION_MILES[action];
-    const event = pickWeighted(TRAIL_EVENTS[action]);
-
-    trail.miles = Math.min(TRAIL_GOAL_MILES, trail.miles + randInt(minM, maxM));
-    trail.health = Math.max(0, Math.min(100, trail.health + event.health));
-    trail.treats = Math.max(0, trail.treats + event.treats);
-    trail.day += 1;
-    trail.log.unshift(event.text);
-    trail.log = trail.log.slice(0, 6);
-
-    renderTrail();
-    checkTrailEnd();
+    renderTrailHud();
   }
 
-  function startStandoff() {
-    const standoff = STANDOFFS[randInt(0, STANDOFFS.length - 1)];
-    trail.pendingStandoff = standoff;
-    renderStandoff(standoff);
+  function drawTrailPlayer() {
+    const ctx = trail.ctx;
+    const p = trail.player;
+    let h = PLAYER_SIZE;
+    let cy = GROUND_Y - PLAYER_SIZE / 2 + p.y;
+    if (p.state === "hide") {
+      h = PLAYER_SIZE * 0.55;
+      cy = GROUND_Y - h / 2;
+    }
+    const cx = PLAYER_X + PLAYER_SIZE / 2;
+    const bob = p.state === "run" ? Math.sin(trail.distance / 10) * 3 : 0;
+    const tilt = p.state === "jump" ? -0.15 : 0;
+
+    ctx.save();
+    ctx.translate(cx, cy + bob);
+    ctx.rotate(tilt);
+    if (trail.wolfieImg) {
+      ctx.drawImage(trail.wolfieImg, -h / 2, -h / 2, h, h);
+    } else {
+      ctx.font = `${h}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🐺", 0, 0);
+    }
+    ctx.restore();
   }
 
-  function renderStandoff(standoff) {
-    const actionsEl = document.getElementById("trail-actions");
-    actionsEl.innerHTML =
-      `<p class="trail-standoff-prompt">${escapeHtml(standoff.prompt)}</p>` +
-      standoff.choices
-        .map(
-          (choice, idx) =>
-            `<button type="button" class="btn-secondary" data-standoff-choice="${idx}">${escapeHtml(choice.label)}</button>`
-        )
-        .join("");
-    actionsEl.querySelectorAll("[data-standoff-choice]").forEach((btn) => {
-      btn.addEventListener("click", () => resolveStandoff(standoff, Number(btn.dataset.standoffChoice)));
-    });
+  function drawTrailMarco(ob) {
+    const ctx = trail.ctx;
+    ctx.save();
+    ctx.translate(ob.x, ob.cy);
+    ctx.scale(-1, 1);
+    if (trail.marcoImg) {
+      ctx.drawImage(trail.marcoImg, -ob.h / 2, -ob.h / 2, ob.h, ob.h);
+    } else {
+      ctx.font = `${ob.h}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🐕", 0, 0);
+    }
+    ctx.restore();
   }
 
-  function resolveStandoff(standoff, idx) {
-    const choice = standoff.choices[idx];
-    trail.pendingStandoff = null;
-    trail.miles = Math.min(TRAIL_GOAL_MILES, trail.miles + choice.bonusMiles);
-    trail.health = Math.max(0, Math.min(100, trail.health + choice.health));
-    trail.treats = Math.max(0, trail.treats + choice.treats);
-    trail.day += 1;
-    trail.log.unshift(choice.text);
-    trail.log = trail.log.slice(0, 6);
+  function drawTrail() {
+    const ctx = trail.ctx;
+    ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
 
-    renderTrail();
-    restoreNormalActions();
-    checkTrailEnd();
+    ctx.font = "26px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.globalAlpha = 0.6;
+    const parX = -(trail.distance * 0.15) % 220;
+    for (let i = -1; i <= Math.ceil(LOGICAL_W / 220) + 1; i++) {
+      ctx.fillText("⛰️", parX + i * 220, 130);
+    }
+    ctx.globalAlpha = 1;
+    ctx.font = "26px sans-serif";
+    ctx.fillText("☀️", 580, 38);
+
+    ctx.fillStyle = "#935420";
+    ctx.fillRect(0, GROUND_Y, LOGICAL_W, LOGICAL_H - GROUND_Y);
+    ctx.strokeStyle = "#2a1c12";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    ctx.lineTo(LOGICAL_W, GROUND_Y);
+    ctx.stroke();
+
+    ctx.strokeStyle = "#7a4318";
+    ctx.lineWidth = 3;
+    const dashOffset = -(trail.distance % 32);
+    for (let x = dashOffset; x < LOGICAL_W; x += 32) {
+      ctx.beginPath();
+      ctx.moveTo(x, GROUND_Y + 11);
+      ctx.lineTo(x + 16, GROUND_Y + 11);
+      ctx.stroke();
+    }
+
+    ctx.font = "22px sans-serif";
+    for (const t of trail.treatItems) {
+      if (t.eaten) continue;
+      ctx.fillText("🦴", t.x, GROUND_Y - 14);
+    }
+
+    for (const ob of trail.obstacles) {
+      if (ob.kind === "marco") {
+        drawTrailMarco(ob);
+        continue;
+      }
+      ctx.font = `${ob.h}px sans-serif`;
+      ctx.fillText(ob.emoji, ob.x, ob.cy);
+    }
+
+    drawTrailPlayer();
   }
 
-  function restoreNormalActions() {
-    const actionsEl = document.getElementById("trail-actions");
-    actionsEl.innerHTML = `
-      <button type="button" class="btn-secondary" data-trail-action="push">🐾 Push On</button>
-      <button type="button" class="btn-secondary" data-trail-action="rest">🍖 Rest &amp; Feast</button>
-      <button type="button" class="btn-secondary" data-trail-action="sniff">🔍 Sniff Around</button>
-    `;
-    actionsEl.querySelectorAll("[data-trail-action]").forEach((btn) => {
-      btn.addEventListener("click", () => trailAction(btn.dataset.trailAction));
-    });
+  function trailLoop(ts) {
+    if (!trail || trail.ended) return;
+    if (!trail.lastTs) trail.lastTs = ts;
+    const dt = Math.min(48, ts - trail.lastTs);
+    trail.lastTs = ts;
+    const step = dt / 16.6667;
+
+    updateTrail(ts, step);
+    if (trail && !trail.ended) {
+      drawTrail();
+      trail.rafId = requestAnimationFrame(trailLoop);
+    }
   }
 
   function initTrailGame() {
     const section = document.getElementById("trail-game");
     if (!section) return;
+
     document.getElementById("trail-start-btn").addEventListener("click", trailStart);
     document.getElementById("trail-restart-btn").addEventListener("click", trailStart);
-    section.querySelectorAll("[data-trail-action]").forEach((btn) => {
-      btn.addEventListener("click", () => trailAction(btn.dataset.trailAction));
+
+    section.querySelectorAll("[data-trail-ctrl]").forEach((btn) => {
+      const ctrl = btn.dataset.trailCtrl;
+      if (ctrl === "run") {
+        const start = (e) => {
+          e.preventDefault();
+          setTrailBoost(true);
+          btn.classList.add("is-active");
+        };
+        const stop = () => {
+          setTrailBoost(false);
+          btn.classList.remove("is-active");
+        };
+        btn.addEventListener("pointerdown", start);
+        btn.addEventListener("pointerup", stop);
+        btn.addEventListener("pointerleave", stop);
+        btn.addEventListener("pointercancel", stop);
+      } else {
+        btn.addEventListener("click", () => {
+          if (ctrl === "jump") trailJump();
+          else if (ctrl === "hide") trailHide();
+          else if (ctrl === "eat") trailEat();
+        });
+      }
+    });
+
+    const canvas = document.getElementById("trail-canvas");
+    canvas.addEventListener("pointerdown", () => trailJump());
+
+    document.addEventListener("keydown", (e) => {
+      if (!trail || trail.ended) return;
+      if (e.code === "Space" || e.code === "ArrowUp") {
+        e.preventDefault();
+        if (!e.repeat) trailJump();
+      } else if (e.code === "ArrowDown") {
+        e.preventDefault();
+        if (!e.repeat) trailHide();
+      } else if (e.code === "KeyE") {
+        if (!e.repeat) trailEat();
+      } else if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.code === "ArrowRight") {
+        setTrailBoost(true);
+      }
+    });
+    document.addEventListener("keyup", (e) => {
+      if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.code === "ArrowRight") setTrailBoost(false);
     });
   }
 

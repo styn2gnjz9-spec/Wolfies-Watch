@@ -140,20 +140,17 @@
 
   <section class="panel" id="trail-game">
     <h2>🐺 Sheriff Wolfie's Trail</h2>
-    <p class="menu-intro">A tiny quest: help Sheriff Wolfie make it all the way to LA!</p>
+    <p class="menu-intro">Run, jump, hide, and snack your way 400 miles to LA!</p>
 
     <div id="trail-intro">
-      <p>The trail to LA is 400 miles of tumbleweeds, treats, and trouble. Think Wolfie's got what it takes?</p>
+      <p>The trail to LA is 400 miles of tumbleweeds, treats, and trouble — and somewhere out there is Marco, Wolfie's arch-nemesis from the dog park. Jump the obstacles, duck out of sight, and gobble up treats along the way!</p>
       <button type="button" id="trail-start-btn" class="btn-primary">🐾 Start the Trail</button>
     </div>
 
     <div id="trail-play" hidden>
-      <div class="trail-scene" aria-hidden="true">
-        <div class="trail-scene-decor">🌵</div>
-        <div class="trail-scene-decor d2">🪨</div>
-        <div class="trail-scene-decor d3">🌵</div>
-        <div id="trail-sprite" class="trail-sprite">🐺</div>
-        <div class="trail-scene-ground"></div>
+      <div class="trail-canvas-wrap">
+        <canvas id="trail-canvas" width="640" height="220"></canvas>
+        <p id="trail-status" class="trail-status" aria-live="polite"></p>
       </div>
       <div class="trail-stats">
         <div class="trail-stat">
@@ -165,13 +162,14 @@
           <div class="trail-bar"><div id="trail-miles-bar" class="trail-bar-fill miles"></div></div>
         </div>
       </div>
-      <p class="trail-meta">Day <span id="trail-day">1</span> · 🦴 <span id="trail-treats">0</span> treats found</p>
-      <div id="trail-log" class="trail-log"></div>
-      <div id="trail-actions" class="trail-actions">
-        <button type="button" class="btn-secondary" data-trail-action="push">🐾 Push On</button>
-        <button type="button" class="btn-secondary" data-trail-action="rest">🍖 Rest &amp; Feast</button>
-        <button type="button" class="btn-secondary" data-trail-action="sniff">🔍 Sniff Around</button>
+      <p class="trail-meta">🦴 <span id="trail-treats">0</span> treats found</p>
+      <div class="trail-controls">
+        <button type="button" class="trail-ctrl-btn" data-trail-ctrl="jump">⬆️<span>Jump</span></button>
+        <button type="button" class="trail-ctrl-btn" data-trail-ctrl="hide">🙈<span>Hide</span></button>
+        <button type="button" class="trail-ctrl-btn" data-trail-ctrl="eat">🦴<span>Eat</span></button>
+        <button type="button" class="trail-ctrl-btn" data-trail-ctrl="run">💨<span>Run!</span></button>
       </div>
+      <p class="trail-hint">Tap the trail or press Space to jump. Hold Run for a burst of speed.</p>
     </div>
 
     <div id="trail-end" hidden>
