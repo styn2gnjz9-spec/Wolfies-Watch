@@ -137,6 +137,41 @@
     <p class="menu-intro">Grub stops along the trail — keeps the sheriff fed and happy!</p>
     <div id="menu-list" class="menu-list"></div>
   </section>
+
+  <section class="panel" id="trail-game">
+    <h2>🐺 Sheriff Wolfie's Trail</h2>
+    <p class="menu-intro">A tiny quest: help Sheriff Wolfie make it all the way to LA!</p>
+
+    <div id="trail-intro">
+      <p>The trail to LA is 400 miles of tumbleweeds, treats, and trouble. Think Wolfie's got what it takes?</p>
+      <button type="button" id="trail-start-btn" class="btn-primary">🐾 Start the Trail</button>
+    </div>
+
+    <div id="trail-play" hidden>
+      <div class="trail-stats">
+        <div class="trail-stat">
+          <span class="trail-stat-label">❤️ Health</span>
+          <div class="trail-bar"><div id="trail-health-bar" class="trail-bar-fill health"></div></div>
+        </div>
+        <div class="trail-stat">
+          <span class="trail-stat-label">🗺️ Miles</span>
+          <div class="trail-bar"><div id="trail-miles-bar" class="trail-bar-fill miles"></div></div>
+        </div>
+      </div>
+      <p class="trail-meta">Day <span id="trail-day">1</span> · 🦴 <span id="trail-treats">0</span> treats found</p>
+      <div id="trail-log" class="trail-log"></div>
+      <div class="trail-actions">
+        <button type="button" class="btn-secondary" data-trail-action="push">🐾 Push On</button>
+        <button type="button" class="btn-secondary" data-trail-action="rest">🍖 Rest &amp; Feast</button>
+        <button type="button" class="btn-secondary" data-trail-action="sniff">🔍 Sniff Around</button>
+      </div>
+    </div>
+
+    <div id="trail-end" hidden>
+      <p id="trail-end-message" class="trail-end-message"></p>
+      <button type="button" id="trail-restart-btn" class="btn-primary">Play Again</button>
+    </div>
+  </section>
 </main>
 
 <footer class="site-footer">

@@ -743,9 +743,117 @@
   }
 
   // ---------------------------------------------------------------
+  // Sheriff Wolfie's Trail (mini game)
+  // ---------------------------------------------------------------
+  const TRAIL_GOAL_MILES = 400;
+
+  const TRAIL_ACTION_MILES = {
+    push: [40, 65],
+    rest: [5, 15],
+    sniff: [20, 35],
+  };
+
+  const TRAIL_EVENTS = {
+    push: [
+      { chance: 0.5, health: 0, treats: 0, text: "Wolfie trots along steadily. Nothin' but open trail." },
+      { chance: 0.2, health: -10, treats: 0, text: "A rocky patch! Wolfie's paws are sore. 😖" },
+      { chance: 0.15, health: 5, treats: 0, text: "A cool breeze picks up — Wolfie feels great! 🌬️" },
+      { chance: 0.15, health: 0, treats: 1, text: "Wolfie spots a treat stashed by the trail! 🦴" },
+    ],
+    rest: [
+      { chance: 0.4, health: 15, treats: 0, text: "A good nap in the shade. Wolfie feels refreshed. 😴" },
+      { chance: 0.3, health: 10, treats: 1, text: "Snack time turns up a bonus treat! 🍖" },
+      { chance: 0.2, health: 5, treats: 0, text: "Wolfie stretches and rolls in the grass. 🌾" },
+      { chance: 0.1, health: -5, treats: 0, text: "A pesky fly won't leave Wolfie alone. 🪰" },
+    ],
+    sniff: [
+      { chance: 0.35, health: 0, treats: 1, text: "Nose to the ground — jackpot, a treat! 🦴" },
+      { chance: 0.25, health: 0, treats: 0, text: "Just tumbleweeds and dust out here." },
+      { chance: 0.2, health: -8, treats: 0, text: "A startled rattlesnake! Wolfie backs off quick. 🐍" },
+      { chance: 0.2, health: 8, treats: 2, text: "A whole trail of treats! Someone's been careless. 🦴🦴" },
+    ],
+  };
+
+  let trail = null;
+
+  function pickWeighted(options) {
+    const roll = Math.random();
+    let acc = 0;
+    for (const opt of options) {
+      acc += opt.chance;
+      if (roll <= acc) return opt;
+    }
+    return options[options.length - 1];
+  }
+
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function trailStart() {
+    trail = { health: 100, miles: 0, treats: 0, day: 1, log: ["Sheriff Wolfie sets out for LA! 🐾"] };
+    document.getElementById("trail-intro").hidden = true;
+    document.getElementById("trail-end").hidden = true;
+    document.getElementById("trail-play").hidden = false;
+    renderTrail();
+  }
+
+  function renderTrail() {
+    if (!trail) return;
+    document.getElementById("trail-health-bar").style.width = `${trail.health}%`;
+    document.getElementById("trail-miles-bar").style.width = `${(trail.miles / TRAIL_GOAL_MILES) * 100}%`;
+    document.getElementById("trail-day").textContent = trail.day;
+    document.getElementById("trail-treats").textContent = trail.treats;
+    document.getElementById("trail-log").innerHTML = trail.log
+      .map((msg) => `<div>${escapeHtml(msg)}</div>`)
+      .join("");
+  }
+
+  function trailEnd(won) {
+    document.getElementById("trail-play").hidden = true;
+    const endEl = document.getElementById("trail-end");
+    document.getElementById("trail-end-message").textContent = won
+      ? `🎉 Sheriff Wolfie made it to LA in ${trail.day} days with ${trail.treats} treats! What a good boy.`
+      : `😴 Sheriff Wolfie's plum tuckered out after ${trail.day} days and needs a nap back home. Try again?`;
+    endEl.hidden = false;
+  }
+
+  function trailAction(action) {
+    if (!trail) return;
+    const [minM, maxM] = TRAIL_ACTION_MILES[action];
+    const event = pickWeighted(TRAIL_EVENTS[action]);
+
+    trail.miles = Math.min(TRAIL_GOAL_MILES, trail.miles + randInt(minM, maxM));
+    trail.health = Math.max(0, Math.min(100, trail.health + event.health));
+    trail.treats += event.treats;
+    trail.day += 1;
+    trail.log.unshift(event.text);
+    trail.log = trail.log.slice(0, 6);
+
+    renderTrail();
+
+    if (trail.health <= 0) {
+      trailEnd(false);
+    } else if (trail.miles >= TRAIL_GOAL_MILES) {
+      trailEnd(true);
+    }
+  }
+
+  function initTrailGame() {
+    const section = document.getElementById("trail-game");
+    if (!section) return;
+    document.getElementById("trail-start-btn").addEventListener("click", trailStart);
+    document.getElementById("trail-restart-btn").addEventListener("click", trailStart);
+    section.querySelectorAll("[data-trail-action]").forEach((btn) => {
+      btn.addEventListener("click", () => trailAction(btn.dataset.trailAction));
+    });
+  }
+
+  // ---------------------------------------------------------------
   // Init
   // ---------------------------------------------------------------
   async function init() {
+    initTrailGame();
     initTreatsSection();
     populateFormOptions();
     renderMenu();
