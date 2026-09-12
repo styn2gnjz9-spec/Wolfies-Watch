@@ -1,4 +1,4 @@
-const CACHE_NAME = "wolfies-watch-v15";
+const CACHE_NAME = "wolfies-watch-v16";
 const ASSETS = [
   "./",
   "./index.html",

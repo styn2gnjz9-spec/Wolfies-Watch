@@ -759,8 +759,8 @@
   const GRAVITY = 0.85;
   const JUMP_VELOCITY = -12.5;
   const HIDE_MS = 650;
-  const BASE_SPEED = 3.2;
-  const MAX_SPEED = 6.5;
+  const BASE_SPEED = 2.1;
+  const MAX_SPEED = 3.8;
 
   const JUMP_OK_MSGS = ["Wolfie hops clean over it! 🐾", "Nice leap, Sheriff! 🤸", "Cleared it with room to spare! ✨"];
   const JUMP_FAIL_MSGS = ["Ouch — right into it! 😖", "Didn't clear that one. 🤕", "Should've jumped! 😵"];
@@ -1051,9 +1051,8 @@
       boost: false,
       lastTs: 0,
       statusTimer: null,
-      nextObstacleAt: 260,
-      nextMarcoAt: randInt(2600, 4200),
-      nextTreatAt: 220,
+      nextSpawnAt: 280,
+      nextMarcoAt: randInt(2800, 4400),
       obstacles: [],
       treatItems: [],
       player: { state: "run", y: 0, vy: 0, hideUntil: 0 },
@@ -1157,19 +1156,24 @@
     trail.treatItems.push({ x: LOGICAL_W + 20, eaten: false });
   }
 
+  // Only one thing spawns per gap so obstacles/treats never land on top of
+  // each other and force conflicting actions (e.g. a bone right at a cactus).
   function maybeSpawnTrail() {
-    if (trail.distance >= trail.nextObstacleAt) {
-      spawnTrailObstacle(pickObstacleKind());
-      trail.nextObstacleAt = trail.distance + randInt(260, 420);
-    }
+    if (trail.distance < trail.nextSpawnAt) return;
+
     if (trail.distance >= trail.nextMarcoAt) {
       spawnTrailObstacle("marco");
-      trail.nextMarcoAt = trail.distance + randInt(3200, 6000);
+      trail.nextMarcoAt = trail.distance + randInt(3600, 6500);
+      trail.nextSpawnAt = trail.distance + randInt(340, 480);
+      return;
     }
-    if (trail.distance >= trail.nextTreatAt) {
+
+    if (Math.random() < 0.3) {
       spawnTrailTreat();
-      trail.nextTreatAt = trail.distance + randInt(300, 520);
+    } else {
+      spawnTrailObstacle(pickObstacleKind());
     }
+    trail.nextSpawnAt = trail.distance + randInt(300, 460);
   }
 
   function resolveTrailObstacle(ob) {
