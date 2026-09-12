@@ -167,8 +167,12 @@
     let maxMin = 22 * 60;
     blockCache.forEach((b) => {
       if (!b.start || !b.end) return;
-      minMin = Math.min(minMin, Math.floor(timeToMinutes(b.start) / 60) * 60);
-      maxMin = Math.max(maxMin, Math.ceil(timeToMinutes(b.end) / 60) * 60);
+      const s = timeToMinutes(b.start);
+      // Overnight quests (end time earlier than start) run past midnight —
+      // for the day's axis span, treat them as extending to end of day.
+      const e = timeToMinutes(b.end) <= s ? 24 * 60 : timeToMinutes(b.end);
+      minMin = Math.min(minMin, Math.floor(s / 60) * 60);
+      maxMin = Math.max(maxMin, Math.ceil(e / 60) * 60);
     });
     const span = maxMin - minMin;
 
@@ -190,7 +194,9 @@
           .map((b) => {
             const activity = activityByValue[b.activity] || { icon: "⭐", label: "Quest" };
             const s = timeToMinutes(b.start);
-            const e = timeToMinutes(b.end);
+            // Clip overnight bars to the end of this day's row rather than
+            // wrapping to a negative width.
+            const e = timeToMinutes(b.end) <= s ? 24 * 60 : timeToMinutes(b.end);
             const left = ((s - minMin) / span) * 100;
             const width = Math.max(((e - s) / span) * 100, 4);
             const title = `${b.name} — ${activity.label} (${formatTime(b.start)}–${formatTime(b.end)})`;
@@ -278,8 +284,8 @@
       errorEl.hidden = false;
       return;
     }
-    if (end <= start) {
-      errorEl.textContent = "End time needs to be after start time.";
+    if (end === start) {
+      errorEl.textContent = "End time needs to be different from start time.";
       errorEl.hidden = false;
       return;
     }
