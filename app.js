@@ -1039,6 +1039,7 @@
   }
 
   function trailStart() {
+    hideTrailWinCelebration();
     const canvas = document.getElementById("trail-canvas");
     const ctx = canvas.getContext("2d");
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -1084,6 +1085,49 @@
       ? `🎉 Sheriff Wolfie made it to LA with ${trail.treats} treats in his belly! What a good boy.`
       : `😴 Sheriff Wolfie's plum tuckered out after ${milesShown} miles and needs a nap back home. Try again?`;
     endEl.hidden = false;
+
+    if (won) showTrailWinCelebration();
+  }
+
+  const CONFETTI_COLORS = ["#c1712f", "#3d6b96", "#4a7c59", "#a13d63", "#d8b25c", "#6b4c9a", "#c1440e"];
+  let trailWinDismissTimer = null;
+
+  function launchConfetti() {
+    const layer = document.getElementById("confetti-layer");
+    if (!layer) return;
+    layer.innerHTML = "";
+    const count = 70;
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement("div");
+      piece.className = "confetti-piece";
+      const left = Math.random() * 100;
+      const drift = (Math.random() * 160 - 80) + "px";
+      const duration = 2.2 + Math.random() * 1.6;
+      const delay = Math.random() * 0.6;
+      const color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+      piece.style.left = `${left}%`;
+      piece.style.setProperty("--drift", drift);
+      piece.style.animationDuration = `${duration}s`;
+      piece.style.animationDelay = `${delay}s`;
+      piece.style.background = color;
+      if (Math.random() < 0.4) piece.style.borderRadius = "50%";
+      layer.appendChild(piece);
+    }
+  }
+
+  function showTrailWinCelebration() {
+    const overlay = document.getElementById("trail-win-overlay");
+    if (!overlay) return;
+    overlay.hidden = false;
+    launchConfetti();
+    clearTimeout(trailWinDismissTimer);
+    trailWinDismissTimer = setTimeout(hideTrailWinCelebration, 5000);
+  }
+
+  function hideTrailWinCelebration() {
+    clearTimeout(trailWinDismissTimer);
+    const overlay = document.getElementById("trail-win-overlay");
+    if (overlay) overlay.hidden = true;
   }
 
   function checkTrailEnd() {
@@ -1353,6 +1397,12 @@
 
     document.getElementById("trail-start-btn").addEventListener("click", trailStart);
     document.getElementById("trail-restart-btn").addEventListener("click", trailStart);
+
+    const winOverlay = document.getElementById("trail-win-overlay");
+    document.getElementById("trail-win-close-btn").addEventListener("click", hideTrailWinCelebration);
+    winOverlay.addEventListener("click", (e) => {
+      if (e.target === winOverlay) hideTrailWinCelebration();
+    });
 
     section.querySelectorAll("[data-trail-ctrl]").forEach((btn) => {
       const ctrl = btn.dataset.trailCtrl;
