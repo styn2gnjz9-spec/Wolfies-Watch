@@ -1298,7 +1298,8 @@
         flashUntil: 0,
         charging: false,
         chargeUntil: 0,
-        nextChargeAt: 3000,
+        telegraphUntil: 0,
+        nextChargeAt: performance.now() + 3500,
       },
     };
     bossMoveDir = 0;
@@ -1314,12 +1315,15 @@
 
   function bossMarcoBox() {
     const m = boss.marco;
-    return {
-      x: m.x - BOSS_MARCO_SIZE * 0.34,
-      y: GROUND_Y - BOSS_MARCO_SIZE * 0.78,
-      w: BOSS_MARCO_SIZE * 0.68,
-      h: BOSS_MARCO_SIZE * 0.78,
-    };
+    const s = BOSS_MARCO_SIZE / 64;
+    // Marco's drawn silhouette isn't centered on his anchor point (his
+    // nose/muzzle sticks out further than his tail) -- shift the hitbox
+    // toward his actual visual center of mass based on which way he's
+    // facing, and keep it generously sized so it reads fairly.
+    const centerOffset = m.dir * 6 * s;
+    const halfW = BOSS_MARCO_SIZE * 0.42;
+    const h = BOSS_MARCO_SIZE * 0.8;
+    return { x: m.x + centerOffset - halfW, y: GROUND_Y - h, w: halfW * 2, h };
   }
 
   function bossRectsOverlap(a, b) {
@@ -1355,10 +1359,10 @@
     renderBossHud();
     showTrailStatus(pickRandom(BOSS_HIT_MSGS));
     const knock = boss.wolfie.x < boss.marco.x ? -1 : 1;
-    boss.wolfie.vx = knock * 260;
-    boss.wolfie.vy = -320;
+    boss.wolfie.vx = knock * 200;
+    boss.wolfie.vy = -260;
     boss.wolfie.onGround = false;
-    boss.wolfie.invulnUntil = performance.now() + 1200;
+    boss.wolfie.invulnUntil = performance.now() + 1000;
     if (boss.lives <= 0) {
       boss.ended = true;
       if (boss.rafId) cancelAnimationFrame(boss.rafId);
@@ -1373,18 +1377,28 @@
     const m = boss.marco;
     const w = boss.wolfie;
 
-    if (ts > m.nextChargeAt && ts > m.chargeUntil) {
-      m.charging = true;
-      m.chargeUntil = ts + 700;
-      m.nextChargeAt = ts + 4500 + Math.random() * 2000;
-      m.dir = w.x < m.x ? -1 : 1;
+    // telegraph a charge before it happens so it's a fair, dodgeable pattern
+    if (!m.charging && !m.telegraphUntil && ts > m.nextChargeAt) {
+      m.telegraphUntil = ts + 550;
+      m.nextChargeAt = ts + 5200 + Math.random() * 2000;
+      showTrailStatus("Marco's winding up — look out! ⚠️");
+    }
+    if (m.telegraphUntil) {
+      if (ts >= m.telegraphUntil) {
+        m.telegraphUntil = 0;
+        m.charging = true;
+        m.chargeUntil = ts + 650;
+        m.dir = w.x < m.x ? -1 : 1;
+      } else {
+        return; // holding still during the wind-up
+      }
     }
     if (m.charging && ts > m.chargeUntil) {
       m.charging = false;
     }
 
-    const baseSpeed = 70 + (BOSS_MARCO_MAX_HP - m.hp) * 22;
-    const speed = m.charging ? baseSpeed * 2.6 : baseSpeed;
+    const patrolSpeed = 70 + (BOSS_MARCO_MAX_HP - m.hp) * 12;
+    const speed = m.charging ? 230 : patrolSpeed;
     m.x += m.dir * speed * dt;
     if (m.x < BOSS_ARENA_MIN_X + 20) {
       m.x = BOSS_ARENA_MIN_X + 20;
@@ -1393,9 +1407,6 @@
     if (m.x > BOSS_ARENA_MAX_X - 20) {
       m.x = BOSS_ARENA_MAX_X - 20;
       m.dir = -1;
-    }
-    if (!m.charging && Math.random() < dt * 0.4) {
-      m.dir = w.x < m.x ? -1 : 1;
     }
   }
 
@@ -1422,8 +1433,11 @@
     const wb = bossWolfieBox();
     const mb = bossMarcoBox();
     if (bossRectsOverlap(wb, mb)) {
-      const wolfieBottomPrev = wb.y + wb.h - w.vy * dt;
-      const isStomp = w.vy > 40 && wolfieBottomPrev <= mb.y + mb.h * 0.35;
+      // Generous, position-based stomp check: airborne with feet in the
+      // upper half of Marco's body counts as a stomp, whether Wolfie is
+      // still rising into it or already falling -- this reads far more
+      // fairly than trying to reconstruct exact fall velocity.
+      const isStomp = !w.onGround && wb.y + wb.h <= mb.y + mb.h * 0.55;
       if (isStomp) {
         onBossStomp();
       } else {
@@ -1487,6 +1501,12 @@
     if (flashing) ctx.globalAlpha = 0.4;
     drawMarcoDog(ctx, BOSS_MARCO_SIZE, ts / 70, "run");
     ctx.restore();
+
+    if (m.telegraphUntil) {
+      const bob = Math.sin(ts / 60) * 4;
+      ctx.font = "26px sans-serif";
+      ctx.fillText("⚠️", m.x, GROUND_Y - BOSS_MARCO_SIZE * 0.95 + bob);
+    }
   }
 
   function bossLoop(ts) {
