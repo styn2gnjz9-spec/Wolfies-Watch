@@ -756,8 +756,8 @@
   const WIN_DISTANCE = TRAIL_GOAL_MILES * PX_PER_MILE;
 
   const LOGICAL_W = 640;
-  const LOGICAL_H = 300;
-  const GROUND_Y = 235;
+  const LOGICAL_H = 400;
+  const GROUND_Y = 310;
   const PLAYER_X = 70;
   const PLAYER_SIZE = 58;
   const TRIGGER_X = PLAYER_X + PLAYER_SIZE / 2;
@@ -783,18 +783,17 @@
   const BOSS_GRAVITY = 1400;
   const BOSS_JUMP_VELOCITY = -560;
   const BOSS_STOMP_BOUNCE = -420;
-  const BOSS_MOVE_SPEED = 210;
   const BOSS_MARCO_SIZE = 130;
   const BOSS_MARCO_MAX_HP = 5;
   const BOSS_WOLFIE_MAX_LIVES = 3;
   const BOSS_ARENA_MIN_X = 40;
   const BOSS_ARENA_MAX_X = LOGICAL_W - 40;
+  const WOLFIE_BOSS_X = 150;
 
   const BOSS_STOMP_MSGS = ["Stomp! Right on the noggin'! 🐾", "Bullseye! Marco sees stars! ⭐", "Direct hop! 💥"];
   const BOSS_HIT_MSGS = ["Marco bowls Wolfie right over! 😖", "Ouch — caught from the side! 😵"];
 
   let boss = null;
-  let bossMoveDir = 0;
 
   const WOLFIE_PALETTE = {
     coat: "#c9944f",
@@ -1171,7 +1170,6 @@
     document.getElementById("trail-boss-lose").hidden = true;
     if (boss && boss.rafId) cancelAnimationFrame(boss.rafId);
     boss = null;
-    bossMoveDir = 0;
     setBossUiActive(false);
 
     const canvas = document.getElementById("trail-canvas");
@@ -1290,7 +1288,7 @@
       ended: false,
       lastTs: 0,
       rafId: null,
-      wolfie: { x: PLAYER_X + 40, y: GROUND_Y, vx: 0, vy: 0, onGround: true, facing: 1, invulnUntil: 0 },
+      wolfie: { y: GROUND_Y, vy: 0, onGround: true, invulnUntil: 0 },
       marco: {
         x: LOGICAL_W - 120,
         dir: -1,
@@ -1300,17 +1298,23 @@
         chargeUntil: 0,
         telegraphUntil: 0,
         nextChargeAt: performance.now() + 3500,
+        defeated: false,
+        defeatStart: 0,
       },
     };
-    bossMoveDir = 0;
-    showTrailStatus("Marco's blocking the road into LA! 🚧");
+    showTrailStatus("Marco's blocking the road into LA — jump when he gets close! 🚧");
     renderBossHud();
     boss.rafId = requestAnimationFrame(bossLoop);
   }
 
   function bossWolfieBox() {
     const w = boss.wolfie;
-    return { x: w.x - PLAYER_SIZE * 0.32, y: w.y - PLAYER_SIZE * 0.82, w: PLAYER_SIZE * 0.64, h: PLAYER_SIZE * 0.82 };
+    return {
+      x: WOLFIE_BOSS_X - PLAYER_SIZE * 0.32,
+      y: w.y - PLAYER_SIZE * 0.82,
+      w: PLAYER_SIZE * 0.64,
+      h: PLAYER_SIZE * 0.82,
+    };
   }
 
   function bossMarcoBox() {
@@ -1338,18 +1342,24 @@
     }
   }
 
+  const BOSS_DEFEAT_ROLL_MS = 420;
+  const BOSS_DEFEAT_INFLATE_MS = 380;
+  const BOSS_DEFEAT_FADE_MS = 400;
+  const BOSS_DEFEAT_TOTAL_MS = BOSS_DEFEAT_ROLL_MS + BOSS_DEFEAT_INFLATE_MS + BOSS_DEFEAT_FADE_MS;
+
   function onBossStomp() {
     const m = boss.marco;
     m.hp -= 1;
     m.flashUntil = performance.now() + 300;
     boss.wolfie.vy = BOSS_STOMP_BOUNCE;
     boss.wolfie.y = bossMarcoBox().y - 2;
-    showTrailStatus(pickRandom(BOSS_STOMP_MSGS));
     renderBossHud();
     if (m.hp <= 0) {
-      boss.ended = true;
-      if (boss.rafId) cancelAnimationFrame(boss.rafId);
-      trailEnd(true);
+      m.defeated = true;
+      m.defeatStart = performance.now();
+      showTrailStatus("Marco's had enough! 🎉");
+    } else {
+      showTrailStatus(pickRandom(BOSS_STOMP_MSGS));
     }
   }
 
@@ -1358,9 +1368,7 @@
     boss.lives -= 1;
     renderBossHud();
     showTrailStatus(pickRandom(BOSS_HIT_MSGS));
-    const knock = boss.wolfie.x < boss.marco.x ? -1 : 1;
-    boss.wolfie.vx = knock * 200;
-    boss.wolfie.vy = -260;
+    boss.wolfie.vy = -220;
     boss.wolfie.onGround = false;
     boss.wolfie.invulnUntil = performance.now() + 1000;
     if (boss.lives <= 0) {
@@ -1375,7 +1383,6 @@
 
   function updateBossMarco(dt, ts) {
     const m = boss.marco;
-    const w = boss.wolfie;
 
     // telegraph a charge before it happens so it's a fair, dodgeable pattern
     if (!m.charging && !m.telegraphUntil && ts > m.nextChargeAt) {
@@ -1388,7 +1395,7 @@
         m.telegraphUntil = 0;
         m.charging = true;
         m.chargeUntil = ts + 650;
-        m.dir = w.x < m.x ? -1 : 1;
+        m.dir = WOLFIE_BOSS_X < m.x ? -1 : 1;
       } else {
         return; // holding still during the wind-up
       }
@@ -1397,7 +1404,7 @@
       m.charging = false;
     }
 
-    const patrolSpeed = 70 + (BOSS_MARCO_MAX_HP - m.hp) * 12;
+    const patrolSpeed = 60 + (BOSS_MARCO_MAX_HP - m.hp) * 8;
     const speed = m.charging ? 230 : patrolSpeed;
     m.x += m.dir * speed * dt;
     if (m.x < BOSS_ARENA_MIN_X + 20) {
@@ -1413,11 +1420,6 @@
   function updateBoss(ts, dt) {
     const w = boss.wolfie;
 
-    w.vx = bossMoveDir * BOSS_MOVE_SPEED;
-    w.x += w.vx * dt;
-    w.x = Math.max(BOSS_ARENA_MIN_X, Math.min(BOSS_ARENA_MAX_X, w.x));
-    if (w.vx !== 0) w.facing = w.vx > 0 ? 1 : -1;
-
     w.vy += BOSS_GRAVITY * dt;
     w.y += w.vy * dt;
     if (w.y >= GROUND_Y) {
@@ -1426,6 +1428,15 @@
       w.onGround = true;
     } else {
       w.onGround = false;
+    }
+
+    if (boss.marco.defeated) {
+      if (performance.now() - boss.marco.defeatStart > BOSS_DEFEAT_TOTAL_MS) {
+        boss.ended = true;
+        if (boss.rafId) cancelAnimationFrame(boss.rafId);
+        trailEnd(true);
+      }
+      return;
     }
 
     updateBossMarco(dt, ts);
@@ -1486,14 +1497,19 @@
     const invuln = ts < w.invulnUntil && Math.floor(ts / 90) % 2 === 0;
     if (!invuln) {
       ctx.save();
-      ctx.translate(w.x, w.y - 2);
-      if (w.facing < 0) ctx.scale(-1, 1);
-      const pose = !w.onGround ? "jump" : w.vx !== 0 ? "run" : "idle";
+      ctx.translate(WOLFIE_BOSS_X, w.y - 2);
+      if (boss.marco.x < WOLFIE_BOSS_X) ctx.scale(-1, 1);
+      const pose = !w.onGround ? "jump" : "idle";
       drawTrailDog(ctx, PLAYER_SIZE, WOLFIE_PALETTE, ts / 80, pose);
       ctx.restore();
     }
 
     const m = boss.marco;
+    if (m.defeated) {
+      drawMarcoDefeat(ctx, ts);
+      return;
+    }
+
     const flashing = performance.now() < m.flashUntil && Math.floor(performance.now() / 60) % 2 === 0;
     ctx.save();
     ctx.translate(m.x, GROUND_Y - 2);
@@ -1506,6 +1522,57 @@
       const bob = Math.sin(ts / 60) * 4;
       ctx.font = "26px sans-serif";
       ctx.fillText("⚠️", m.x, GROUND_Y - BOSS_MARCO_SIZE * 0.95 + bob);
+    }
+  }
+
+  // Marco rolls onto his back, inflates like a balloon, then pops -- the
+  // little celebratory finisher before the real win screen shows up.
+  function drawMarcoDefeat(ctx, ts) {
+    const m = boss.marco;
+    const elapsed = performance.now() - m.defeatStart;
+    const popAt = BOSS_DEFEAT_ROLL_MS + BOSS_DEFEAT_INFLATE_MS;
+
+    if (elapsed < BOSS_DEFEAT_ROLL_MS) {
+      const t = elapsed / BOSS_DEFEAT_ROLL_MS;
+      const angle = t * Math.PI;
+      const hop = Math.sin(t * Math.PI) * 12;
+      ctx.save();
+      ctx.translate(m.x, GROUND_Y - 2 - hop);
+      ctx.rotate(angle);
+      drawMarcoDog(ctx, BOSS_MARCO_SIZE, 0, "idle");
+      ctx.restore();
+    } else if (elapsed < popAt) {
+      const t = (elapsed - BOSS_DEFEAT_ROLL_MS) / BOSS_DEFEAT_INFLATE_MS;
+      const scale = 1 + t * 0.55;
+      ctx.save();
+      ctx.translate(m.x, GROUND_Y - 2);
+      ctx.rotate(Math.PI);
+      ctx.scale(scale, scale);
+      drawMarcoDog(ctx, BOSS_MARCO_SIZE, 0, "idle");
+      ctx.restore();
+      if (t > 0.7) {
+        ctx.font = "bold 30px sans-serif";
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#fff";
+        ctx.fillStyle = "#c1440e";
+        ctx.strokeText("POP!", m.x, GROUND_Y - BOSS_MARCO_SIZE * 1.05);
+        ctx.fillText("POP!", m.x, GROUND_Y - BOSS_MARCO_SIZE * 1.05);
+      }
+    } else {
+      const t = Math.min(1, (elapsed - popAt) / BOSS_DEFEAT_FADE_MS);
+      ctx.globalAlpha = 1 - t;
+      ctx.font = "22px sans-serif";
+      const spots = [
+        [-24, -14],
+        [22, -18],
+        [0, -30],
+        [-16, 8],
+        [18, 4],
+      ];
+      for (const [dx, dy] of spots) {
+        ctx.fillText("✨", m.x + dx, GROUND_Y - BOSS_MARCO_SIZE * 0.55 + dy);
+      }
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -1868,25 +1935,7 @@
     });
 
     section.querySelectorAll("[data-boss-ctrl]").forEach((btn) => {
-      const ctrl = btn.dataset.bossCtrl;
-      if (ctrl === "jump") {
-        btn.addEventListener("click", bossJump);
-        return;
-      }
-      const dir = ctrl === "left" ? -1 : 1;
-      const start = (e) => {
-        e.preventDefault();
-        bossMoveDir = dir;
-        btn.classList.add("is-active");
-      };
-      const stop = () => {
-        if (bossMoveDir === dir) bossMoveDir = 0;
-        btn.classList.remove("is-active");
-      };
-      btn.addEventListener("pointerdown", start);
-      btn.addEventListener("pointerup", stop);
-      btn.addEventListener("pointerleave", stop);
-      btn.addEventListener("pointercancel", stop);
+      btn.addEventListener("click", bossJump);
     });
 
     const canvas = document.getElementById("trail-canvas");
@@ -1897,13 +1946,7 @@
 
     document.addEventListener("keydown", (e) => {
       if (boss && !boss.ended) {
-        if (e.code === "ArrowLeft" || e.code === "KeyA") {
-          e.preventDefault();
-          bossMoveDir = -1;
-        } else if (e.code === "ArrowRight" || e.code === "KeyD") {
-          e.preventDefault();
-          bossMoveDir = 1;
-        } else if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
+        if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
           e.preventDefault();
           if (!e.repeat) bossJump();
         }
@@ -1923,11 +1966,7 @@
       }
     });
     document.addEventListener("keyup", (e) => {
-      if (boss && !boss.ended) {
-        if ((e.code === "ArrowLeft" || e.code === "KeyA") && bossMoveDir === -1) bossMoveDir = 0;
-        else if ((e.code === "ArrowRight" || e.code === "KeyD") && bossMoveDir === 1) bossMoveDir = 0;
-        return;
-      }
+      if (boss && !boss.ended) return;
       if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.code === "ArrowRight") setTrailBoost(false);
     });
   }

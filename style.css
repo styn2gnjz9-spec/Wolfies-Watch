@@ -915,7 +915,7 @@ button:active {
 .trail-canvas-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 640 / 300;
+  aspect-ratio: 640 / 400;
   background: linear-gradient(180deg, #bfe3f2 0%, #f6ddbb 55%, #f2c98a 100%);
   border: 2px solid var(--ink);
   border-radius: 10px;
@@ -990,6 +990,22 @@ button:active {
 .trail-ctrl-btn.is-active {
   background: var(--wolfie-gold);
   transform: translateY(1px);
+}
+
+.boss-controls-single {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+.boss-jump-btn {
+  width: 100%;
+  max-width: 220px;
+  padding: 16px 4px;
+  font-size: 1.4rem;
+}
+
+.boss-jump-btn span {
+  font-size: 0.85rem;
 }
 
 .trail-hint {
