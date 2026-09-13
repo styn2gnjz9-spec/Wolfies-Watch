@@ -756,8 +756,8 @@
   const WIN_DISTANCE = TRAIL_GOAL_MILES * PX_PER_MILE;
 
   const LOGICAL_W = 640;
-  const LOGICAL_H = 220;
-  const GROUND_Y = 175;
+  const LOGICAL_H = 300;
+  const GROUND_Y = 235;
   const PLAYER_X = 70;
   const PLAYER_SIZE = 58;
   const TRIGGER_X = PLAYER_X + PLAYER_SIZE / 2;
