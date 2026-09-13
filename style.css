@@ -900,11 +900,6 @@ button:active {
   background: var(--wolfie-gold);
 }
 
-.trail-bar-fill.marco {
-  background: #b3452b;
-  margin-left: auto;
-}
-
 .trail-meta {
   font-weight: 700;
   color: var(--text-muted);
@@ -992,21 +987,8 @@ button:active {
   transform: translateY(1px);
 }
 
-.boss-controls-pair {
-  grid-template-columns: repeat(2, 1fr);
-  max-width: 360px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.boss-jump-btn {
-  width: 100%;
-  padding: 16px 4px;
-  font-size: 1.4rem;
-}
-
-.boss-jump-btn span {
-  font-size: 0.85rem;
+.trail-ctrl-btn[hidden] {
+  display: none;
 }
 
 .trail-hint {
@@ -1023,6 +1005,143 @@ button:active {
   text-align: center;
   color: var(--wolfie-copper-dark);
   margin-bottom: 16px;
+}
+
+/* --- boss fight: poker showdown --- */
+.poker-intro {
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-top: 0;
+}
+
+.poker-match-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--wolfie-cream);
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  font-family: "Fredoka", sans-serif;
+  font-weight: 700;
+}
+
+.poker-score {
+  font-size: 1rem;
+  color: var(--wolfie-copper-dark);
+}
+
+.poker-hand-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.poker-table {
+  background: radial-gradient(ellipse at center, #2f6b4f 55%, #244f3a 100%);
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  padding: 14px 10px;
+  margin-bottom: 10px;
+}
+
+.poker-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.poker-seat-label {
+  color: #fff;
+  font-family: "Fredoka", sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 3px 10px;
+  border-radius: 8px;
+}
+
+.poker-stack {
+  color: var(--wolfie-gold);
+  margin-left: 4px;
+}
+
+.poker-hole-cards {
+  display: flex;
+  gap: 6px;
+}
+
+.poker-card {
+  flex: none;
+  width: 42px;
+  height: 60px;
+  background: var(--wolfie-cream);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: "Fredoka", sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.05;
+  box-shadow: 0 2px 4px var(--shadow-soft);
+}
+
+.poker-card.red {
+  color: #b3241f;
+}
+
+.poker-card.black {
+  color: var(--ink);
+}
+
+.poker-card.back {
+  background: repeating-linear-gradient(45deg, var(--wolfie-copper), var(--wolfie-copper) 6px, var(--wolfie-copper-dark) 6px, var(--wolfie-copper-dark) 12px);
+}
+
+.poker-card.back::after {
+  content: "🐾";
+  color: var(--wolfie-cream);
+  font-size: 1.1rem;
+}
+
+.poker-board-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.poker-pot {
+  color: var(--wolfie-gold);
+  font-family: "Fredoka", sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.poker-community-cards {
+  display: flex;
+  gap: 6px;
+  min-height: 60px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.poker-board-area .trail-hint {
+  color: #fff;
+  min-height: 1.2em;
+}
+
+.poker-fold-btn {
+  background: #f3d9d2;
+}
+
+.poker-allin-btn {
+  background: #f6d98a;
 }
 
 /* --- trail win celebration --- */

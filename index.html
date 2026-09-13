@@ -162,16 +162,6 @@
           <div class="trail-bar"><div id="trail-miles-bar" class="trail-bar-fill miles"></div></div>
         </div>
       </div>
-      <div id="boss-stats" class="trail-stats" hidden>
-        <div class="trail-stat">
-          <span class="trail-stat-label">❤️ Wolfie</span>
-          <div class="trail-bar"><div id="boss-wolfie-bar" class="trail-bar-fill health"></div></div>
-        </div>
-        <div class="trail-stat">
-          <span class="trail-stat-label">🐕 Marco</span>
-          <div class="trail-bar"><div id="boss-marco-bar" class="trail-bar-fill marco"></div></div>
-        </div>
-      </div>
       <p class="trail-meta">🦴 <span id="trail-treats">0</span> treats found</p>
       <div id="trail-run-controls" class="trail-controls">
         <button type="button" class="trail-ctrl-btn" data-trail-ctrl="jump">⬆️<span>Jump</span></button>
@@ -179,17 +169,51 @@
         <button type="button" class="trail-ctrl-btn" data-trail-ctrl="eat">🦴<span>Eat</span></button>
         <button type="button" class="trail-ctrl-btn" data-trail-ctrl="run">💨<span>Run!</span></button>
       </div>
-      <div id="boss-controls" class="trail-controls boss-controls-pair" hidden>
-        <button type="button" class="trail-ctrl-btn boss-jump-btn" data-boss-ctrl="jump">⬆️<span>Jump!</span></button>
-        <button type="button" class="trail-ctrl-btn boss-jump-btn" data-boss-ctrl="hide">🙈<span>Duck!</span></button>
-      </div>
       <p id="run-hint" class="trail-hint">Tap the trail or press Space to jump. Hold Run for a burst of speed.</p>
-      <p id="boss-hint" class="trail-hint" hidden>Jump to stomp Marco as he passes — but when he winds up to charge, Duck instead or he'll bite!</p>
     </div>
 
-    <div id="trail-boss-lose" hidden>
-      <p id="trail-boss-lose-message" class="trail-end-message"></p>
-      <button type="button" id="trail-boss-retry-btn" class="btn-primary">Retry Showdown</button>
+    <div id="poker-play" hidden>
+      <p class="poker-intro">🃏 Marco's blocking the road out of town — best of 3 hands of Texas Hold'em decides who gets through!</p>
+      <div class="poker-match-bar">
+        <span class="poker-score">🐺 <span id="poker-wolfie-wins">0</span></span>
+        <span class="poker-hand-label">Hand <span id="poker-hand-num">1</span> of 3</span>
+        <span class="poker-score">🐕 <span id="poker-marco-wins">0</span></span>
+      </div>
+
+      <div class="poker-table">
+        <div class="poker-seat">
+          <div class="poker-seat-label">🐕 Marco <span class="poker-stack" id="poker-marco-stack">200</span></div>
+          <div class="poker-hole-cards" id="poker-marco-cards"></div>
+        </div>
+
+        <div class="poker-board-area">
+          <div class="poker-pot">💰 Pot: <span id="poker-pot-amount">0</span></div>
+          <div class="poker-community-cards" id="poker-community-cards"></div>
+          <p id="poker-status" class="trail-hint" aria-live="polite"></p>
+        </div>
+
+        <div class="poker-seat">
+          <div class="poker-hole-cards" id="poker-wolfie-cards"></div>
+          <div class="poker-seat-label">🐺 Wolfie <span class="poker-stack" id="poker-wolfie-stack">200</span></div>
+        </div>
+      </div>
+
+      <div id="poker-actions" class="trail-controls poker-actions">
+        <button type="button" class="trail-ctrl-btn poker-fold-btn" data-poker-action="fold">🚫<span>Fold</span></button>
+        <button type="button" class="trail-ctrl-btn" id="poker-check-btn" data-poker-action="check">✅<span id="poker-check-label">Check</span></button>
+        <button type="button" class="trail-ctrl-btn" id="poker-raise-btn" data-poker-action="raise">📈<span id="poker-raise-label">Raise</span></button>
+        <button type="button" class="trail-ctrl-btn poker-allin-btn" id="poker-allin-btn" data-poker-action="allin">🎰<span>All In</span></button>
+      </div>
+
+      <div id="poker-hand-result" hidden>
+        <p id="poker-hand-result-message" class="trail-end-message"></p>
+        <button type="button" id="poker-next-hand-btn" class="btn-primary">Next Hand</button>
+      </div>
+    </div>
+
+    <div id="poker-lose" hidden>
+      <p id="poker-lose-message" class="trail-end-message"></p>
+      <button type="button" id="poker-retry-btn" class="btn-primary">Retry Showdown</button>
     </div>
 
     <div id="trail-end" hidden>

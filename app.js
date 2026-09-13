@@ -778,23 +778,23 @@
   let trail = null;
 
   // ---------------------------------------------------------------
-  // Boss fight: Big Marco blocks the road into LA
+  // Boss fight: Marco blocks the road into LA with a showdown of cards
   // ---------------------------------------------------------------
-  const BOSS_GRAVITY = 1400;
-  const BOSS_JUMP_VELOCITY = -560;
-  const BOSS_STOMP_BOUNCE = -420;
-  const BOSS_MARCO_SIZE = 130;
-  const BOSS_MARCO_MAX_HP = 5;
-  const BOSS_WOLFIE_MAX_LIVES = 3;
-  const BOSS_ARENA_MIN_X = 40;
-  const BOSS_ARENA_MAX_X = LOGICAL_W - 40;
-  const WOLFIE_BOSS_X = 150;
-  const BOSS_HIDE_MS = 650;
+  const SUITS = ["♠", "♥", "♦", "♣"];
+  const RED_SUITS = ["♥", "♦"];
+  const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+  const HAND_NAMES = [
+    "High Card", "Pair", "Two Pair", "Three of a Kind", "Straight",
+    "Flush", "Full House", "Four of a Kind", "Straight Flush",
+  ];
+  const POKER_START_STACK = 200;
+  const POKER_SMALL_BLIND = 10;
+  const POKER_BIG_BLIND = 20;
+  const POKER_RAISE_AMOUNT = 40;
+  const POKER_MAX_RAISES_PER_STREET = 3;
+  const POKER_HAND_TARGET_WINS = 2;
 
-  const BOSS_STOMP_MSGS = ["Stomp! Right on the noggin'! 🐾", "Bullseye! Marco sees stars! ⭐", "Direct hop! 💥"];
-  const BOSS_HIT_MSGS = ["Marco bowls Wolfie right over! 😖", "Ouch — caught from the side! 😵"];
-
-  let boss = null;
+  let poker = null;
 
   const WOLFIE_PALETTE = {
     coat: "#c9944f",
@@ -1157,21 +1157,11 @@
     document.getElementById("trail-treats").textContent = trail.treats;
   }
 
-  function setBossUiActive(active) {
-    document.getElementById("run-stats").hidden = active;
-    document.getElementById("boss-stats").hidden = !active;
-    document.getElementById("trail-run-controls").hidden = active;
-    document.getElementById("boss-controls").hidden = !active;
-    document.getElementById("run-hint").hidden = active;
-    document.getElementById("boss-hint").hidden = !active;
-  }
-
   function trailStart() {
     hideTrailWinCelebration();
-    document.getElementById("trail-boss-lose").hidden = true;
-    if (boss && boss.rafId) cancelAnimationFrame(boss.rafId);
-    boss = null;
-    setBossUiActive(false);
+    document.getElementById("poker-lose").hidden = true;
+    document.getElementById("poker-play").hidden = true;
+    poker = null;
 
     const canvas = document.getElementById("trail-canvas");
     const ctx = canvas.getContext("2d");
@@ -1211,13 +1201,12 @@
     if (!trail) return;
     trail.ended = true;
     if (trail.rafId) cancelAnimationFrame(trail.rafId);
-    if (boss && boss.rafId) cancelAnimationFrame(boss.rafId);
-    if (boss) boss.ended = true;
     document.getElementById("trail-play").hidden = true;
+    document.getElementById("poker-play").hidden = true;
     const endEl = document.getElementById("trail-end");
     const milesShown = Math.min(TRAIL_GOAL_MILES, Math.floor(trail.distance / PX_PER_MILE));
     document.getElementById("trail-end-message").textContent = won
-      ? `🎉 Sheriff Wolfie stomped Marco and made it into LA with ${trail.treats} treats in his belly! What a good boy.`
+      ? `🎉 Sheriff Wolfie beat Marco at the poker table and made it into LA with ${trail.treats} treats in his belly! What a good boy.`
       : `😴 Sheriff Wolfie's plum tuckered out after ${milesShown.toLocaleString()} miles and needs a nap back home. Try again?`;
     endEl.hidden = false;
 
@@ -1270,368 +1259,501 @@
     if (trail.health <= 0) trailEnd(false);
   }
 
-  function renderBossHud() {
-    if (!boss) return;
-    document.getElementById("boss-wolfie-bar").style.width = `${(boss.lives / BOSS_WOLFIE_MAX_LIVES) * 100}%`;
-    document.getElementById("boss-marco-bar").style.width = `${(boss.marco.hp / BOSS_MARCO_MAX_HP) * 100}%`;
+  function combinations(arr, k) {
+    const results = [];
+    function helper(start, combo) {
+      if (combo.length === k) {
+        results.push(combo.slice());
+        return;
+      }
+      for (let i = start; i < arr.length; i++) {
+        combo.push(arr[i]);
+        helper(i + 1, combo);
+        combo.pop();
+      }
+    }
+    helper(0, []);
+    return results;
   }
 
-  function enterBossFight() {
+  function buildPokerDeck() {
+    const deck = [];
+    for (const suit of SUITS) {
+      RANKS.forEach((rank, i) => deck.push({ rank, suit, value: i + 2 }));
+    }
+    return deck;
+  }
+
+  function shufflePokerDeck(deck) {
+    const d = deck.slice();
+    for (let i = d.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [d[i], d[j]] = [d[j], d[i]];
+    }
+    return d;
+  }
+
+  function evaluate5(cards) {
+    const values = cards.map((c) => c.value).sort((a, b) => b - a);
+    const suits = cards.map((c) => c.suit);
+    const isFlush = suits.every((s) => s === suits[0]);
+
+    const counts = {};
+    for (const v of values) counts[v] = (counts[v] || 0) + 1;
+    const groups = Object.entries(counts)
+      .map(([v, c]) => ({ v: Number(v), c }))
+      .sort((a, b) => b.c - a.c || b.v - a.v);
+
+    const uniqueDesc = [...new Set(values)];
+    let isStraight = false;
+    let straightHigh = 0;
+    if (uniqueDesc.length === 5) {
+      if (uniqueDesc[0] - uniqueDesc[4] === 4) {
+        isStraight = true;
+        straightHigh = uniqueDesc[0];
+      } else if (uniqueDesc.join(",") === "14,5,4,3,2") {
+        isStraight = true;
+        straightHigh = 5; // wheel: 5-4-3-2-A
+      }
+    }
+
+    if (isStraight && isFlush) return [8, straightHigh];
+    if (groups[0].c === 4) return [7, groups[0].v, groups[1].v];
+    if (groups[0].c === 3 && groups[1] && groups[1].c === 2) return [6, groups[0].v, groups[1].v];
+    if (isFlush) return [5, ...values];
+    if (isStraight) return [4, straightHigh];
+    if (groups[0].c === 3) return [3, groups[0].v, ...groups.slice(1).map((g) => g.v)];
+    if (groups[0].c === 2 && groups[1] && groups[1].c === 2) {
+      const pairs = [groups[0].v, groups[1].v].sort((a, b) => b - a);
+      return [2, ...pairs, groups[2].v];
+    }
+    if (groups[0].c === 2) return [1, groups[0].v, ...groups.slice(1).map((g) => g.v)];
+    return [0, ...values];
+  }
+
+  function compareHandValues(a, b) {
+    const len = Math.max(a.length, b.length);
+    for (let i = 0; i < len; i++) {
+      const av = a[i] || 0;
+      const bv = b[i] || 0;
+      if (av !== bv) return av - bv;
+    }
+    return 0;
+  }
+
+  function bestHandFrom(cards) {
+    if (cards.length <= 5) return evaluate5(cards);
+    let best = null;
+    for (const combo of combinations(cards, 5)) {
+      const val = evaluate5(combo);
+      if (!best || compareHandValues(val, best) > 0) best = val;
+    }
+    return best;
+  }
+
+  function pokerHandName(val) {
+    return HAND_NAMES[val[0]] || "High Card";
+  }
+
+  function setPokerStatus(msg) {
+    const el = document.getElementById("poker-status");
+    if (el) el.textContent = msg;
+  }
+
+  function enterPokerShowdown() {
     if (!trail) return;
     trail.ended = true;
     if (trail.rafId) cancelAnimationFrame(trail.rafId);
 
-    document.getElementById("trail-play").hidden = false;
-    setBossUiActive(true);
+    document.getElementById("trail-play").hidden = true;
+    document.getElementById("poker-play").hidden = false;
+    document.getElementById("poker-lose").hidden = true;
+    document.getElementById("poker-hand-result").hidden = true;
 
-    boss = {
-      lives: BOSS_WOLFIE_MAX_LIVES,
-      ended: false,
-      lastTs: 0,
-      rafId: null,
-      wolfie: { y: GROUND_Y, vy: 0, onGround: true, invulnUntil: 0, hiding: false, hideUntil: 0 },
-      marco: {
-        x: LOGICAL_W - 120,
-        dir: -1,
-        hp: BOSS_MARCO_MAX_HP,
-        flashUntil: 0,
-        charging: false,
-        chargeUntil: 0,
-        chargeResolved: false,
-        telegraphUntil: 0,
-        nextChargeAt: performance.now() + 3500,
-        defeated: false,
-        defeatStart: 0,
-      },
-    };
-    showTrailStatus("Marco's blocking the road into LA — jump when he gets close! 🚧");
-    renderBossHud();
-    boss.rafId = requestAnimationFrame(bossLoop);
+    newPokerMatch();
   }
 
-  function bossWolfieBox() {
-    const w = boss.wolfie;
-    if (w.hiding) {
-      return {
-        x: WOLFIE_BOSS_X - PLAYER_SIZE * 0.32,
-        y: GROUND_Y - PLAYER_SIZE * 0.42,
-        w: PLAYER_SIZE * 0.64,
-        h: PLAYER_SIZE * 0.42,
-      };
-    }
-    return {
-      x: WOLFIE_BOSS_X - PLAYER_SIZE * 0.32,
-      y: w.y - PLAYER_SIZE * 0.82,
-      w: PLAYER_SIZE * 0.64,
-      h: PLAYER_SIZE * 0.82,
-    };
+  function newPokerMatch() {
+    poker = { wolfieWins: 0, marcoWins: 0, handNum: 0 };
+    document.getElementById("poker-hand-result").hidden = true;
+    document.getElementById("poker-actions").hidden = false;
+    startPokerHand();
   }
 
-  function bossMarcoBox() {
-    const m = boss.marco;
-    const s = BOSS_MARCO_SIZE / 64;
-    // Marco's drawn silhouette isn't centered on his anchor point (his
-    // nose/muzzle sticks out further than his tail) -- shift the hitbox
-    // toward his actual visual center of mass based on which way he's
-    // facing, and keep it generously sized so it reads fairly.
-    const centerOffset = m.dir * 6 * s;
-    const halfW = BOSS_MARCO_SIZE * 0.42;
-    const h = BOSS_MARCO_SIZE * 0.8;
-    return { x: m.x + centerOffset - halfW, y: GROUND_Y - h, w: halfW * 2, h };
+  function startPokerHand() {
+    poker.handNum += 1;
+    document.getElementById("poker-hand-num").textContent = poker.handNum;
+    document.getElementById("poker-wolfie-wins").textContent = poker.wolfieWins;
+    document.getElementById("poker-marco-wins").textContent = poker.marcoWins;
+
+    poker.deck = shufflePokerDeck(buildPokerDeck());
+    poker.wolfieHole = [poker.deck.pop(), poker.deck.pop()];
+    poker.marcoHole = [poker.deck.pop(), poker.deck.pop()];
+    poker.community = [];
+    poker.street = "preflop";
+    poker.wolfieStack = POKER_START_STACK;
+    poker.marcoStack = POKER_START_STACK;
+    poker.pot = 0;
+    poker.wolfieFolded = false;
+    poker.marcoFolded = false;
+    poker.handOver = false;
+    poker.marcoRevealed = false;
+
+    document.getElementById("poker-hand-result").hidden = true;
+    document.getElementById("poker-actions").hidden = false;
+    renderPokerCards();
+    renderPokerStacks();
+
+    const sb = Math.min(POKER_SMALL_BLIND, poker.wolfieStack);
+    const bb = Math.min(POKER_BIG_BLIND, poker.marcoStack);
+    poker.wolfieStack -= sb;
+    poker.marcoStack -= bb;
+    poker.pot = sb + bb;
+    renderPokerStacks();
+
+    setPokerStatus("New hand — blinds posted. Your move, Sheriff!");
+    beginPokerBettingRound(sb, bb);
   }
 
-  function bossRectsOverlap(a, b) {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  function pokerStackOf(p) {
+    return p === "wolfie" ? poker.wolfieStack : poker.marcoStack;
   }
 
-  function bossJump() {
-    if (!boss || boss.ended) return;
-    const w = boss.wolfie;
-    if (w.onGround && !w.hiding) {
-      w.vy = BOSS_JUMP_VELOCITY;
-      w.onGround = false;
-    }
+  function beginPokerBettingRound(wolfieStart, marcoStart) {
+    poker.committedWolfie = wolfieStart || 0;
+    poker.committedMarco = marcoStart || 0;
+    poker.betToMatch = Math.max(poker.committedWolfie, poker.committedMarco);
+    poker.raiseCount = 0;
+    poker.actor = "wolfie";
+    promptPokerActor();
   }
 
-  function bossHide() {
-    if (!boss || boss.ended) return;
-    const w = boss.wolfie;
-    if (w.onGround && !w.hiding) {
-      w.hiding = true;
-      w.hideUntil = performance.now() + BOSS_HIDE_MS;
-    }
+  function pokerIsAllIn(p) {
+    return pokerStackOf(p) === 0;
   }
 
-  const BOSS_DEFEAT_ROLL_MS = 420;
-  const BOSS_DEFEAT_INFLATE_MS = 380;
-  const BOSS_DEFEAT_FADE_MS = 400;
-  const BOSS_DEFEAT_TOTAL_MS = BOSS_DEFEAT_ROLL_MS + BOSS_DEFEAT_INFLATE_MS + BOSS_DEFEAT_FADE_MS;
-
-  function onBossStomp() {
-    const m = boss.marco;
-    m.hp -= 1;
-    m.flashUntil = performance.now() + 300;
-    boss.wolfie.vy = BOSS_STOMP_BOUNCE;
-    boss.wolfie.y = bossMarcoBox().y - 2;
-    renderBossHud();
-    if (m.hp <= 0) {
-      m.defeated = true;
-      m.defeatStart = performance.now();
-      showTrailStatus("Marco's had enough! 🎉");
+  function promptPokerActor() {
+    if (!poker || poker.handOver) return;
+    const actionsEl = document.getElementById("poker-actions");
+    if (poker.actor === "wolfie") {
+      if (pokerIsAllIn("wolfie")) {
+        endPokerStreet();
+        return;
+      }
+      renderPokerActionButtons();
+      actionsEl.hidden = false;
     } else {
-      showTrailStatus(pickRandom(BOSS_STOMP_MSGS));
+      actionsEl.hidden = true;
+      if (pokerIsAllIn("marco")) {
+        endPokerStreet();
+        return;
+      }
+      setTimeout(marcoPokerAct, 750 + Math.random() * 400);
     }
   }
 
-  function onBossHit() {
-    if (performance.now() < boss.wolfie.invulnUntil) return;
-    boss.lives -= 1;
-    renderBossHud();
-    showTrailStatus(pickRandom(BOSS_HIT_MSGS));
-    boss.wolfie.vy = -220;
-    boss.wolfie.onGround = false;
-    boss.wolfie.invulnUntil = performance.now() + 1000;
-    if (boss.lives <= 0) {
-      boss.ended = true;
-      if (boss.rafId) cancelAnimationFrame(boss.rafId);
-      document.getElementById("trail-play").hidden = true;
-      document.getElementById("trail-boss-lose-message").textContent =
-        "😵 Marco got the better of Wolfie this time. Give the showdown another go?";
-      document.getElementById("trail-boss-lose").hidden = false;
+  function renderPokerActionButtons() {
+    const toCall = poker.betToMatch - poker.committedWolfie;
+    document.getElementById("poker-check-label").textContent = toCall > 0 ? `Call ${toCall}` : "Check";
+    document.getElementById("poker-check-btn").dataset.pokerAction = toCall > 0 ? "call" : "check";
+    const raiseTo = poker.betToMatch + POKER_RAISE_AMOUNT;
+    const canRaise = poker.raiseCount < POKER_MAX_RAISES_PER_STREET && poker.wolfieStack > toCall;
+    document.getElementById("poker-raise-btn").hidden = !canRaise;
+    document.getElementById("poker-raise-label").textContent =
+      `Raise to ${Math.min(raiseTo, poker.committedWolfie + poker.wolfieStack)}`;
+    document.getElementById("poker-allin-btn").hidden = poker.wolfieStack <= 0;
+  }
+
+  function pokerCommit(player, amount) {
+    if (amount <= 0) return;
+    if (player === "wolfie") {
+      poker.wolfieStack -= amount;
+      poker.committedWolfie += amount;
+    } else {
+      poker.marcoStack -= amount;
+      poker.committedMarco += amount;
+    }
+    poker.pot += amount;
+    renderPokerStacks();
+  }
+
+  function pokerRefundUncalled(player, amount) {
+    if (amount <= 0) return;
+    if (player === "wolfie") {
+      poker.wolfieStack += amount;
+      poker.committedWolfie -= amount;
+    } else {
+      poker.marcoStack += amount;
+      poker.committedMarco -= amount;
+    }
+    poker.pot -= amount;
+    renderPokerStacks();
+  }
+
+  function pokerDoCall(player) {
+    const owed = poker.betToMatch - (player === "wolfie" ? poker.committedWolfie : poker.committedMarco);
+    const stack = pokerStackOf(player);
+    const actual = Math.min(owed, stack);
+    pokerCommit(player, actual);
+    if (actual < owed) {
+      // capped by a short stack -- refund the opponent's uncalled excess
+      const opponent = player === "wolfie" ? "marco" : "wolfie";
+      pokerRefundUncalled(opponent, owed - actual);
     }
   }
 
-  function updateBossMarco(dt, ts) {
-    const m = boss.marco;
+  function pokerDoRaiseTo(player, targetTotal) {
+    const committed = player === "wolfie" ? poker.committedWolfie : poker.committedMarco;
+    const stack = pokerStackOf(player);
+    const desired = targetTotal - committed;
+    const actual = Math.min(desired, stack);
+    pokerCommit(player, actual);
+    poker.betToMatch = Math.max(poker.betToMatch, committed + actual);
+    poker.raiseCount += 1;
+  }
 
-    // telegraph a charge before it happens so it's a fair, dodgeable pattern
-    if (!m.charging && !m.telegraphUntil && ts > m.nextChargeAt) {
-      m.telegraphUntil = ts + 650;
-      m.nextChargeAt = ts + 5200 + Math.random() * 2000;
-      showTrailStatus("Marco's winding up to charge — duck, don't jump! ⚠️");
-    }
-    if (m.telegraphUntil) {
-      if (ts >= m.telegraphUntil) {
-        m.telegraphUntil = 0;
-        m.charging = true;
-        m.chargeResolved = false;
-        m.chargeUntil = ts + 650;
-        m.dir = WOLFIE_BOSS_X < m.x ? -1 : 1;
-      } else {
-        return; // holding still during the wind-up
+  function pokerDoAllIn(player) {
+    const stack = pokerStackOf(player);
+    pokerCommit(player, stack);
+    const committed = player === "wolfie" ? poker.committedWolfie : poker.committedMarco;
+    if (committed > poker.betToMatch) {
+      poker.betToMatch = committed;
+      poker.raiseCount += 1;
+    } else {
+      // all-in for less than the bet -- treat as a capped call, refund the excess
+      const opponent = player === "wolfie" ? "marco" : "wolfie";
+      const opponentCommitted = opponent === "wolfie" ? poker.committedWolfie : poker.committedMarco;
+      if (opponentCommitted > committed) {
+        pokerRefundUncalled(opponent, opponentCommitted - committed);
+        poker.betToMatch = committed;
       }
     }
-    if (m.charging && ts > m.chargeUntil) {
-      m.charging = false;
-    }
-
-    const patrolSpeed = 60 + (BOSS_MARCO_MAX_HP - m.hp) * 8;
-    const speed = m.charging ? 230 : patrolSpeed;
-    m.x += m.dir * speed * dt;
-    if (m.x < BOSS_ARENA_MIN_X + 20) {
-      m.x = BOSS_ARENA_MIN_X + 20;
-      m.dir = 1;
-    }
-    if (m.x > BOSS_ARENA_MAX_X - 20) {
-      m.x = BOSS_ARENA_MAX_X - 20;
-      m.dir = -1;
-    }
   }
 
-  function updateBoss(ts, dt) {
-    const w = boss.wolfie;
+  function switchPokerActor() {
+    poker.actor = poker.actor === "wolfie" ? "marco" : "wolfie";
+  }
 
-    w.vy += BOSS_GRAVITY * dt;
-    w.y += w.vy * dt;
-    if (w.y >= GROUND_Y) {
-      w.y = GROUND_Y;
-      w.vy = 0;
-      w.onGround = true;
+  function foldPokerHand(folder) {
+    if (folder === "wolfie") poker.wolfieFolded = true;
+    else poker.marcoFolded = true;
+    poker.handOver = true;
+    const winner = folder === "wolfie" ? "marco" : "wolfie";
+    if (winner === "wolfie") poker.wolfieStack += poker.pot;
+    else poker.marcoStack += poker.pot;
+    poker.pot = 0;
+    renderPokerStacks();
+    setPokerStatus(`${folder === "wolfie" ? "Wolfie" : "Marco"} folds.`);
+    concludePokerHand(winner, null, null, true);
+  }
+
+  function pokerWolfieAction(action) {
+    if (!poker || poker.handOver || poker.actor !== "wolfie") return;
+    if (action === "fold") {
+      foldPokerHand("wolfie");
+      return;
+    }
+    if (action === "check" || action === "call") {
+      pokerDoCall("wolfie");
+      setPokerStatus(action === "check" ? "Wolfie checks." : "Wolfie calls.");
+    } else if (action === "raise") {
+      pokerDoRaiseTo("wolfie", poker.betToMatch + POKER_RAISE_AMOUNT);
+      setPokerStatus(`Wolfie raises to ${poker.committedWolfie}!`);
+    } else if (action === "allin") {
+      pokerDoAllIn("wolfie");
+      setPokerStatus("Wolfie goes ALL IN! 🔥");
+    }
+    switchPokerActor();
+    afterPokerActionContinue();
+  }
+
+  function afterPokerActionContinue() {
+    if (poker.handOver) return;
+    if (poker.committedWolfie === poker.committedMarco) {
+      endPokerStreet();
+      return;
+    }
+    promptPokerActor();
+  }
+
+  function pokerHandStrength(hole, community) {
+    if (community.length === 0) {
+      const [a, b] = hole;
+      let score = (a.value + b.value) / 28;
+      if (a.value === b.value) score += 0.35;
+      if (a.suit === b.suit) score += 0.05;
+      if (Math.abs(a.value - b.value) === 1) score += 0.05;
+      return Math.min(1, score);
+    }
+    const val = bestHandFrom(hole.concat(community));
+    return 0.15 + (val[0] / 8) * 0.85;
+  }
+
+  function marcoPokerAct() {
+    if (!poker || poker.handOver) return;
+    const strength = pokerHandStrength(poker.marcoHole, poker.community);
+    const bluff = Math.random() < 0.12;
+    const eff = bluff ? Math.max(strength, 0.72) : strength;
+    const owed = poker.betToMatch - poker.committedMarco;
+    const canRaise = poker.raiseCount < POKER_MAX_RAISES_PER_STREET && poker.marcoStack > owed;
+
+    let action;
+    if (owed > 0) {
+      if (eff < 0.22 && Math.random() < 0.65 && owed > POKER_BIG_BLIND) action = "fold";
+      else if (eff > 0.93 && Math.random() < 0.3) action = "allin";
+      else if (eff > 0.7 && canRaise && Math.random() < 0.5) action = "raise";
+      else action = "call";
     } else {
-      w.onGround = false;
+      if (eff > 0.93 && Math.random() < 0.2) action = "allin";
+      else if (eff > 0.58 && canRaise && Math.random() < 0.5) action = "raise";
+      else action = "check";
     }
 
-    if (w.hiding && ts >= w.hideUntil) {
-      w.hiding = false;
+    if (action === "fold") {
+      foldPokerHand("marco");
+      return;
     }
+    if (action === "check" || action === "call") {
+      pokerDoCall("marco");
+      setPokerStatus(action === "check" ? "Marco checks." : "Marco calls.");
+    } else if (action === "raise") {
+      pokerDoRaiseTo("marco", poker.betToMatch + POKER_RAISE_AMOUNT);
+      setPokerStatus(`Marco raises to ${poker.committedMarco}!`);
+    } else if (action === "allin") {
+      pokerDoAllIn("marco");
+      setPokerStatus("Marco shoves ALL IN! 😤");
+    }
+    switchPokerActor();
+    afterPokerActionContinue();
+  }
 
-    if (boss.marco.defeated) {
-      if (performance.now() - boss.marco.defeatStart > BOSS_DEFEAT_TOTAL_MS) {
-        boss.ended = true;
-        if (boss.rafId) cancelAnimationFrame(boss.rafId);
-        trailEnd(true);
-      }
+  function endPokerStreet() {
+    if (!poker || poker.handOver) return;
+    if (poker.street === "preflop") {
+      poker.community.push(poker.deck.pop(), poker.deck.pop(), poker.deck.pop());
+      poker.street = "flop";
+    } else if (poker.street === "flop") {
+      poker.community.push(poker.deck.pop());
+      poker.street = "turn";
+    } else if (poker.street === "turn") {
+      poker.community.push(poker.deck.pop());
+      poker.street = "river";
+    } else {
+      renderPokerCards();
+      setTimeout(goToPokerShowdown, 500);
+      return;
+    }
+    renderPokerCards();
+
+    if (pokerIsAllIn("wolfie") || pokerIsAllIn("marco")) {
+      // no more betting possible -- run it out
+      setTimeout(endPokerStreet, 650);
+      return;
+    }
+    setTimeout(() => beginPokerBettingRound(0, 0), 500);
+  }
+
+  function goToPokerShowdown() {
+    poker.street = "showdown";
+    revealMarcoPokerCards();
+    const wolfieVal = bestHandFrom(poker.wolfieHole.concat(poker.community));
+    const marcoVal = bestHandFrom(poker.marcoHole.concat(poker.community));
+    const cmp = compareHandValues(wolfieVal, marcoVal);
+    let winner;
+    if (cmp > 0) winner = "wolfie";
+    else if (cmp < 0) winner = "marco";
+    else winner = "tie";
+
+    if (winner === "tie") {
+      const half = Math.floor(poker.pot / 2);
+      poker.wolfieStack += half;
+      poker.marcoStack += poker.pot - half;
+      poker.pot = 0;
+      renderPokerStacks();
+      setPokerStatus("Split pot — identical hands!");
+      setTimeout(() => startPokerHand(), 1600); // ties don't count -- replay
       return;
     }
 
-    updateBossMarco(dt, ts);
-
-    const wb = bossWolfieBox();
-    const mb = bossMarcoBox();
-    if (!bossRectsOverlap(wb, mb)) return;
-
-    if (boss.marco.charging) {
-      // Mid-charge, Marco snaps at head height -- jumping (or just
-      // standing there) gets bitten; only ducking is safe. This is the
-      // one moment where jumping is the wrong answer, so mashing Jump
-      // can't carry the whole fight.
-      if (boss.marco.chargeResolved) return;
-      boss.marco.chargeResolved = true;
-      if (w.hiding) {
-        showTrailStatus("Ducked the charge just in time! 😮‍💨");
-      } else {
-        onBossHit();
-      }
-      return;
-    }
-
-    // Normal pass-by: airborne with feet in the upper half of Marco's
-    // body is a stomp; hiding is always a safe (if unrewarded) dodge;
-    // anything else (standing there) gets bumped.
-    const isStomp = !w.onGround && wb.y + wb.h <= mb.y + mb.h * 0.55;
-    if (isStomp) {
-      onBossStomp();
-    } else if (!w.hiding) {
-      onBossHit();
-    }
+    if (winner === "wolfie") poker.wolfieStack += poker.pot;
+    else poker.marcoStack += poker.pot;
+    poker.pot = 0;
+    renderPokerStacks();
+    concludePokerHand(winner, pokerHandName(wolfieVal), pokerHandName(marcoVal), false);
   }
 
-  function drawBossScene(ts) {
-    const ctx = trail.ctx;
-    ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+  function concludePokerHand(winner, wolfieHandName, marcoHandName, wasFold) {
+    poker.handOver = true;
+    document.getElementById("poker-actions").hidden = true;
+    if (winner === "wolfie") poker.wolfieWins += 1;
+    else poker.marcoWins += 1;
+    document.getElementById("poker-wolfie-wins").textContent = poker.wolfieWins;
+    document.getElementById("poker-marco-wins").textContent = poker.marcoWins;
 
-    drawTrailMountains(ctx, 0, GROUND_Y, "rgba(150, 118, 98, 0.38)", 0.62);
-    drawTrailMountains(ctx, -90, GROUND_Y, "rgba(120, 90, 72, 0.55)", 1);
-
-    ctx.font = "26px sans-serif";
-    ctx.fillText("☀️", 580, 38);
-
-    ctx.fillStyle = "#935420";
-    ctx.fillRect(0, GROUND_Y, LOGICAL_W, LOGICAL_H - GROUND_Y);
-    ctx.strokeStyle = "#2a1c12";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y);
-    ctx.lineTo(LOGICAL_W, GROUND_Y);
-    ctx.stroke();
-
-    ctx.strokeStyle = "#7a4318";
-    ctx.lineWidth = 3;
-    for (let x = 6; x < LOGICAL_W; x += 32) {
-      ctx.beginPath();
-      ctx.moveTo(x, GROUND_Y + 14);
-      ctx.lineTo(x + 18, GROUND_Y + 14);
-      ctx.stroke();
-    }
-
-    ctx.font = "24px sans-serif";
-    ctx.globalAlpha = 0.75;
-    ctx.fillText("🌵", 50, GROUND_Y - 14);
-    ctx.fillText("🪨", 590, GROUND_Y - 10);
-    ctx.globalAlpha = 1;
-
-    const w = boss.wolfie;
-    const invuln = ts < w.invulnUntil && Math.floor(ts / 90) % 2 === 0;
-    if (!invuln) {
-      ctx.save();
-      ctx.translate(WOLFIE_BOSS_X, w.y - 2);
-      if (boss.marco.x < WOLFIE_BOSS_X) ctx.scale(-1, 1);
-      const pose = w.hiding ? "hide" : !w.onGround ? "jump" : "idle";
-      drawTrailDog(ctx, PLAYER_SIZE, WOLFIE_PALETTE, ts / 80, pose);
-      ctx.restore();
-    }
-
-    const m = boss.marco;
-    if (m.defeated) {
-      drawMarcoDefeat(ctx, ts);
-      return;
-    }
-
-    const flashing = performance.now() < m.flashUntil && Math.floor(performance.now() / 60) % 2 === 0;
-    ctx.save();
-    ctx.translate(m.x, GROUND_Y - 2);
-    if (m.dir < 0) ctx.scale(-1, 1);
-    if (flashing) ctx.globalAlpha = 0.4;
-    drawMarcoDog(ctx, BOSS_MARCO_SIZE, ts / 70, "run");
-    ctx.restore();
-
-    if (m.telegraphUntil) {
-      const bob = Math.sin(ts / 60) * 4;
-      ctx.font = "26px sans-serif";
-      ctx.fillText("⚠️", m.x, GROUND_Y - BOSS_MARCO_SIZE * 0.95 + bob);
-    }
-
-    if (m.charging) {
-      ctx.font = "20px sans-serif";
-      ctx.globalAlpha = 0.7;
-      const trail = m.dir > 0 ? -1 : 1;
-      ctx.fillText("💨", m.x + trail * BOSS_MARCO_SIZE * 0.55, GROUND_Y - BOSS_MARCO_SIZE * 0.4);
-      ctx.fillText("💨", m.x + trail * BOSS_MARCO_SIZE * 0.8, GROUND_Y - BOSS_MARCO_SIZE * 0.25);
-      ctx.globalAlpha = 1;
-    }
-  }
-
-  // Marco rolls onto his back, inflates like a balloon, then pops -- the
-  // little celebratory finisher before the real win screen shows up.
-  function drawMarcoDefeat(ctx, ts) {
-    const m = boss.marco;
-    const elapsed = performance.now() - m.defeatStart;
-    const popAt = BOSS_DEFEAT_ROLL_MS + BOSS_DEFEAT_INFLATE_MS;
-
-    if (elapsed < BOSS_DEFEAT_ROLL_MS) {
-      const t = elapsed / BOSS_DEFEAT_ROLL_MS;
-      const angle = t * Math.PI;
-      const hop = Math.sin(t * Math.PI) * 12;
-      ctx.save();
-      ctx.translate(m.x, GROUND_Y - 2 - hop);
-      ctx.rotate(angle);
-      drawMarcoDog(ctx, BOSS_MARCO_SIZE, 0, "idle");
-      ctx.restore();
-    } else if (elapsed < popAt) {
-      const t = (elapsed - BOSS_DEFEAT_ROLL_MS) / BOSS_DEFEAT_INFLATE_MS;
-      const scale = 1 + t * 0.55;
-      ctx.save();
-      ctx.translate(m.x, GROUND_Y - 2);
-      ctx.rotate(Math.PI);
-      ctx.scale(scale, scale);
-      drawMarcoDog(ctx, BOSS_MARCO_SIZE, 0, "idle");
-      ctx.restore();
-      if (t > 0.7) {
-        ctx.font = "bold 30px sans-serif";
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = "#fff";
-        ctx.fillStyle = "#c1440e";
-        ctx.strokeText("POP!", m.x, GROUND_Y - BOSS_MARCO_SIZE * 1.05);
-        ctx.fillText("POP!", m.x, GROUND_Y - BOSS_MARCO_SIZE * 1.05);
-      }
+    let msg;
+    if (wasFold) {
+      msg = winner === "wolfie" ? "🎉 Marco folds — Wolfie takes the hand!" : "😬 Wolfie folds — Marco takes the hand.";
     } else {
-      const t = Math.min(1, (elapsed - popAt) / BOSS_DEFEAT_FADE_MS);
-      ctx.globalAlpha = 1 - t;
-      ctx.font = "22px sans-serif";
-      const spots = [
-        [-24, -14],
-        [22, -18],
-        [0, -30],
-        [-16, 8],
-        [18, 4],
-      ];
-      for (const [dx, dy] of spots) {
-        ctx.fillText("✨", m.x + dx, GROUND_Y - BOSS_MARCO_SIZE * 0.55 + dy);
-      }
-      ctx.globalAlpha = 1;
+      msg =
+        winner === "wolfie"
+          ? `🎉 Wolfie wins with ${wolfieHandName} (Marco had ${marcoHandName})`
+          : `😬 Marco wins with ${marcoHandName} (Wolfie had ${wolfieHandName})`;
     }
+    document.getElementById("poker-hand-result-message").textContent = msg;
+
+    if (poker.wolfieWins >= POKER_HAND_TARGET_WINS || poker.marcoWins >= POKER_HAND_TARGET_WINS) {
+      setTimeout(() => showPokerMatchEnd(poker.wolfieWins >= POKER_HAND_TARGET_WINS), 900);
+      return;
+    }
+
+    document.getElementById("poker-hand-result").hidden = false;
   }
 
-  function bossLoop(ts) {
-    if (!boss || boss.ended) return;
-    if (!boss.lastTs) boss.lastTs = ts;
-    const dt = Math.min(0.032, (ts - boss.lastTs) / 1000);
-    boss.lastTs = ts;
-    updateBoss(ts, dt);
-    drawBossScene(ts);
-    boss.rafId = requestAnimationFrame(bossLoop);
+  function showPokerMatchEnd(wolfieWonMatch) {
+    if (wolfieWonMatch) {
+      trailEnd(true);
+      return;
+    }
+    document.getElementById("poker-play").hidden = true;
+    document.getElementById("poker-lose-message").textContent =
+      `😵 Marco wins the showdown, ${poker.marcoWins} hands to ${poker.wolfieWins}. Give the showdown another go?`;
+    document.getElementById("poker-lose").hidden = false;
+  }
+
+  function pokerCardEl(card, hidden) {
+    const div = document.createElement("div");
+    if (hidden) {
+      div.className = "poker-card back";
+      return div;
+    }
+    div.className = "poker-card " + (RED_SUITS.includes(card.suit) ? "red" : "black");
+    div.innerHTML = `<span>${card.rank}</span><span>${card.suit}</span>`;
+    return div;
+  }
+
+  function renderPokerCards() {
+    const wolfieEl = document.getElementById("poker-wolfie-cards");
+    const marcoEl = document.getElementById("poker-marco-cards");
+    const communityEl = document.getElementById("poker-community-cards");
+    wolfieEl.innerHTML = "";
+    marcoEl.innerHTML = "";
+    communityEl.innerHTML = "";
+
+    poker.wolfieHole.forEach((c) => wolfieEl.appendChild(pokerCardEl(c, false)));
+    const showMarco = poker.street === "showdown" || poker.marcoRevealed;
+    poker.marcoHole.forEach((c) => marcoEl.appendChild(pokerCardEl(c, !showMarco)));
+    poker.community.forEach((c) => communityEl.appendChild(pokerCardEl(c, false)));
+  }
+
+  function revealMarcoPokerCards() {
+    poker.marcoRevealed = true;
+    renderPokerCards();
+  }
+
+  function renderPokerStacks() {
+    document.getElementById("poker-wolfie-stack").textContent = poker.wolfieStack;
+    document.getElementById("poker-marco-stack").textContent = poker.marcoStack;
+    document.getElementById("poker-pot-amount").textContent = poker.pot;
   }
 
   function trailJump() {
@@ -1799,7 +1921,7 @@
     trail.treatItems = trail.treatItems.filter((t) => t.x > -40 && !t.eaten);
 
     if (trail.distance >= WIN_DISTANCE) {
-      enterBossFight();
+      enterPokerShowdown();
       return;
     }
 
@@ -1977,36 +2099,27 @@
       }
     });
 
-    document.getElementById("trail-boss-retry-btn").addEventListener("click", () => {
-      document.getElementById("trail-boss-lose").hidden = true;
-      enterBossFight();
+    document.getElementById("poker-retry-btn").addEventListener("click", () => {
+      document.getElementById("poker-lose").hidden = true;
+      document.getElementById("poker-play").hidden = false;
+      newPokerMatch();
     });
 
-    section.querySelectorAll("[data-boss-ctrl]").forEach((btn) => {
-      const ctrl = btn.dataset.bossCtrl;
-      btn.addEventListener("click", () => {
-        if (ctrl === "jump") bossJump();
-        else if (ctrl === "hide") bossHide();
-      });
+    document.getElementById("poker-next-hand-btn").addEventListener("click", () => {
+      document.getElementById("poker-hand-result").hidden = true;
+      startPokerHand();
+    });
+
+    document.getElementById("poker-actions").querySelectorAll("[data-poker-action]").forEach((btn) => {
+      btn.addEventListener("click", () => pokerWolfieAction(btn.dataset.pokerAction));
     });
 
     const canvas = document.getElementById("trail-canvas");
     canvas.addEventListener("pointerdown", () => {
-      if (boss && !boss.ended) bossJump();
-      else trailJump();
+      trailJump();
     });
 
     document.addEventListener("keydown", (e) => {
-      if (boss && !boss.ended) {
-        if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
-          e.preventDefault();
-          if (!e.repeat) bossJump();
-        } else if (e.code === "ArrowDown" || e.code === "KeyS") {
-          e.preventDefault();
-          if (!e.repeat) bossHide();
-        }
-        return;
-      }
       if (!trail || trail.ended) return;
       if (e.code === "Space" || e.code === "ArrowUp") {
         e.preventDefault();
@@ -2021,7 +2134,6 @@
       }
     });
     document.addEventListener("keyup", (e) => {
-      if (boss && !boss.ended) return;
       if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.code === "ArrowRight") setTrailBoost(false);
     });
   }
