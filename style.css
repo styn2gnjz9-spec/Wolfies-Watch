@@ -858,6 +858,10 @@ button:active {
   margin-bottom: 10px;
 }
 
+.trail-stats[hidden] {
+  display: none;
+}
+
 .trail-stat {
   display: flex;
   align-items: center;
@@ -894,6 +898,11 @@ button:active {
 
 .trail-bar-fill.miles {
   background: var(--wolfie-gold);
+}
+
+.trail-bar-fill.marco {
+  background: #b3452b;
+  margin-left: auto;
 }
 
 .trail-meta {
@@ -946,6 +955,10 @@ button:active {
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-bottom: 8px;
+}
+
+.trail-controls[hidden] {
+  display: none;
 }
 
 .trail-ctrl-btn {

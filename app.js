@@ -777,6 +777,25 @@
 
   let trail = null;
 
+  // ---------------------------------------------------------------
+  // Boss fight: Big Marco blocks the road into LA
+  // ---------------------------------------------------------------
+  const BOSS_GRAVITY = 1400;
+  const BOSS_JUMP_VELOCITY = -560;
+  const BOSS_STOMP_BOUNCE = -420;
+  const BOSS_MOVE_SPEED = 210;
+  const BOSS_MARCO_SIZE = 130;
+  const BOSS_MARCO_MAX_HP = 5;
+  const BOSS_WOLFIE_MAX_LIVES = 3;
+  const BOSS_ARENA_MIN_X = 40;
+  const BOSS_ARENA_MAX_X = LOGICAL_W - 40;
+
+  const BOSS_STOMP_MSGS = ["Stomp! Right on the noggin'! 🐾", "Bullseye! Marco sees stars! ⭐", "Direct hop! 💥"];
+  const BOSS_HIT_MSGS = ["Marco bowls Wolfie right over! 😖", "Ouch — caught from the side! 😵"];
+
+  let boss = null;
+  let bossMoveDir = 0;
+
   const WOLFIE_PALETTE = {
     coat: "#c9944f",
     dark: "#221d1a",
@@ -1138,8 +1157,23 @@
     document.getElementById("trail-treats").textContent = trail.treats;
   }
 
+  function setBossUiActive(active) {
+    document.getElementById("run-stats").hidden = active;
+    document.getElementById("boss-stats").hidden = !active;
+    document.getElementById("trail-run-controls").hidden = active;
+    document.getElementById("boss-controls").hidden = !active;
+    document.getElementById("run-hint").hidden = active;
+    document.getElementById("boss-hint").hidden = !active;
+  }
+
   function trailStart() {
     hideTrailWinCelebration();
+    document.getElementById("trail-boss-lose").hidden = true;
+    if (boss && boss.rafId) cancelAnimationFrame(boss.rafId);
+    boss = null;
+    bossMoveDir = 0;
+    setBossUiActive(false);
+
     const canvas = document.getElementById("trail-canvas");
     const ctx = canvas.getContext("2d");
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -1178,11 +1212,13 @@
     if (!trail) return;
     trail.ended = true;
     if (trail.rafId) cancelAnimationFrame(trail.rafId);
+    if (boss && boss.rafId) cancelAnimationFrame(boss.rafId);
+    if (boss) boss.ended = true;
     document.getElementById("trail-play").hidden = true;
     const endEl = document.getElementById("trail-end");
     const milesShown = Math.min(TRAIL_GOAL_MILES, Math.floor(trail.distance / PX_PER_MILE));
     document.getElementById("trail-end-message").textContent = won
-      ? `🎉 Sheriff Wolfie made it to LA with ${trail.treats} treats in his belly! What a good boy.`
+      ? `🎉 Sheriff Wolfie stomped Marco and made it into LA with ${trail.treats} treats in his belly! What a good boy.`
       : `😴 Sheriff Wolfie's plum tuckered out after ${milesShown.toLocaleString()} miles and needs a nap back home. Try again?`;
     endEl.hidden = false;
 
@@ -1233,6 +1269,234 @@
   function checkTrailEnd() {
     if (!trail) return;
     if (trail.health <= 0) trailEnd(false);
+  }
+
+  function renderBossHud() {
+    if (!boss) return;
+    document.getElementById("boss-wolfie-bar").style.width = `${(boss.lives / BOSS_WOLFIE_MAX_LIVES) * 100}%`;
+    document.getElementById("boss-marco-bar").style.width = `${(boss.marco.hp / BOSS_MARCO_MAX_HP) * 100}%`;
+  }
+
+  function enterBossFight() {
+    if (!trail) return;
+    trail.ended = true;
+    if (trail.rafId) cancelAnimationFrame(trail.rafId);
+
+    document.getElementById("trail-play").hidden = false;
+    setBossUiActive(true);
+
+    boss = {
+      lives: BOSS_WOLFIE_MAX_LIVES,
+      ended: false,
+      lastTs: 0,
+      rafId: null,
+      wolfie: { x: PLAYER_X + 40, y: GROUND_Y, vx: 0, vy: 0, onGround: true, facing: 1, invulnUntil: 0 },
+      marco: {
+        x: LOGICAL_W - 120,
+        dir: -1,
+        hp: BOSS_MARCO_MAX_HP,
+        flashUntil: 0,
+        charging: false,
+        chargeUntil: 0,
+        nextChargeAt: 3000,
+      },
+    };
+    bossMoveDir = 0;
+    showTrailStatus("Marco's blocking the road into LA! 🚧");
+    renderBossHud();
+    boss.rafId = requestAnimationFrame(bossLoop);
+  }
+
+  function bossWolfieBox() {
+    const w = boss.wolfie;
+    return { x: w.x - PLAYER_SIZE * 0.32, y: w.y - PLAYER_SIZE * 0.82, w: PLAYER_SIZE * 0.64, h: PLAYER_SIZE * 0.82 };
+  }
+
+  function bossMarcoBox() {
+    const m = boss.marco;
+    return {
+      x: m.x - BOSS_MARCO_SIZE * 0.34,
+      y: GROUND_Y - BOSS_MARCO_SIZE * 0.78,
+      w: BOSS_MARCO_SIZE * 0.68,
+      h: BOSS_MARCO_SIZE * 0.78,
+    };
+  }
+
+  function bossRectsOverlap(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function bossJump() {
+    if (!boss || boss.ended) return;
+    if (boss.wolfie.onGround) {
+      boss.wolfie.vy = BOSS_JUMP_VELOCITY;
+      boss.wolfie.onGround = false;
+    }
+  }
+
+  function onBossStomp() {
+    const m = boss.marco;
+    m.hp -= 1;
+    m.flashUntil = performance.now() + 300;
+    boss.wolfie.vy = BOSS_STOMP_BOUNCE;
+    boss.wolfie.y = bossMarcoBox().y - 2;
+    showTrailStatus(pickRandom(BOSS_STOMP_MSGS));
+    renderBossHud();
+    if (m.hp <= 0) {
+      boss.ended = true;
+      if (boss.rafId) cancelAnimationFrame(boss.rafId);
+      trailEnd(true);
+    }
+  }
+
+  function onBossHit() {
+    if (performance.now() < boss.wolfie.invulnUntil) return;
+    boss.lives -= 1;
+    renderBossHud();
+    showTrailStatus(pickRandom(BOSS_HIT_MSGS));
+    const knock = boss.wolfie.x < boss.marco.x ? -1 : 1;
+    boss.wolfie.vx = knock * 260;
+    boss.wolfie.vy = -320;
+    boss.wolfie.onGround = false;
+    boss.wolfie.invulnUntil = performance.now() + 1200;
+    if (boss.lives <= 0) {
+      boss.ended = true;
+      if (boss.rafId) cancelAnimationFrame(boss.rafId);
+      document.getElementById("trail-play").hidden = true;
+      document.getElementById("trail-boss-lose-message").textContent =
+        "😵 Marco got the better of Wolfie this time. Give the showdown another go?";
+      document.getElementById("trail-boss-lose").hidden = false;
+    }
+  }
+
+  function updateBossMarco(dt, ts) {
+    const m = boss.marco;
+    const w = boss.wolfie;
+
+    if (ts > m.nextChargeAt && ts > m.chargeUntil) {
+      m.charging = true;
+      m.chargeUntil = ts + 700;
+      m.nextChargeAt = ts + 4500 + Math.random() * 2000;
+      m.dir = w.x < m.x ? -1 : 1;
+    }
+    if (m.charging && ts > m.chargeUntil) {
+      m.charging = false;
+    }
+
+    const baseSpeed = 70 + (BOSS_MARCO_MAX_HP - m.hp) * 22;
+    const speed = m.charging ? baseSpeed * 2.6 : baseSpeed;
+    m.x += m.dir * speed * dt;
+    if (m.x < BOSS_ARENA_MIN_X + 20) {
+      m.x = BOSS_ARENA_MIN_X + 20;
+      m.dir = 1;
+    }
+    if (m.x > BOSS_ARENA_MAX_X - 20) {
+      m.x = BOSS_ARENA_MAX_X - 20;
+      m.dir = -1;
+    }
+    if (!m.charging && Math.random() < dt * 0.4) {
+      m.dir = w.x < m.x ? -1 : 1;
+    }
+  }
+
+  function updateBoss(ts, dt) {
+    const w = boss.wolfie;
+
+    w.vx = bossMoveDir * BOSS_MOVE_SPEED;
+    w.x += w.vx * dt;
+    w.x = Math.max(BOSS_ARENA_MIN_X, Math.min(BOSS_ARENA_MAX_X, w.x));
+    if (w.vx !== 0) w.facing = w.vx > 0 ? 1 : -1;
+
+    w.vy += BOSS_GRAVITY * dt;
+    w.y += w.vy * dt;
+    if (w.y >= GROUND_Y) {
+      w.y = GROUND_Y;
+      w.vy = 0;
+      w.onGround = true;
+    } else {
+      w.onGround = false;
+    }
+
+    updateBossMarco(dt, ts);
+
+    const wb = bossWolfieBox();
+    const mb = bossMarcoBox();
+    if (bossRectsOverlap(wb, mb)) {
+      const wolfieBottomPrev = wb.y + wb.h - w.vy * dt;
+      const isStomp = w.vy > 40 && wolfieBottomPrev <= mb.y + mb.h * 0.35;
+      if (isStomp) {
+        onBossStomp();
+      } else {
+        onBossHit();
+      }
+    }
+  }
+
+  function drawBossScene(ts) {
+    const ctx = trail.ctx;
+    ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    drawTrailMountains(ctx, 0, GROUND_Y, "rgba(150, 118, 98, 0.38)", 0.62);
+    drawTrailMountains(ctx, -90, GROUND_Y, "rgba(120, 90, 72, 0.55)", 1);
+
+    ctx.font = "26px sans-serif";
+    ctx.fillText("☀️", 580, 38);
+
+    ctx.fillStyle = "#935420";
+    ctx.fillRect(0, GROUND_Y, LOGICAL_W, LOGICAL_H - GROUND_Y);
+    ctx.strokeStyle = "#2a1c12";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    ctx.lineTo(LOGICAL_W, GROUND_Y);
+    ctx.stroke();
+
+    ctx.strokeStyle = "#7a4318";
+    ctx.lineWidth = 3;
+    for (let x = 6; x < LOGICAL_W; x += 32) {
+      ctx.beginPath();
+      ctx.moveTo(x, GROUND_Y + 14);
+      ctx.lineTo(x + 18, GROUND_Y + 14);
+      ctx.stroke();
+    }
+
+    ctx.font = "24px sans-serif";
+    ctx.globalAlpha = 0.75;
+    ctx.fillText("🌵", 50, GROUND_Y - 14);
+    ctx.fillText("🪨", 590, GROUND_Y - 10);
+    ctx.globalAlpha = 1;
+
+    const w = boss.wolfie;
+    const invuln = ts < w.invulnUntil && Math.floor(ts / 90) % 2 === 0;
+    if (!invuln) {
+      ctx.save();
+      ctx.translate(w.x, w.y - 2);
+      if (w.facing < 0) ctx.scale(-1, 1);
+      const pose = !w.onGround ? "jump" : w.vx !== 0 ? "run" : "idle";
+      drawTrailDog(ctx, PLAYER_SIZE, WOLFIE_PALETTE, ts / 80, pose);
+      ctx.restore();
+    }
+
+    const m = boss.marco;
+    const flashing = performance.now() < m.flashUntil && Math.floor(performance.now() / 60) % 2 === 0;
+    ctx.save();
+    ctx.translate(m.x, GROUND_Y - 2);
+    if (m.dir < 0) ctx.scale(-1, 1);
+    if (flashing) ctx.globalAlpha = 0.4;
+    drawMarcoDog(ctx, BOSS_MARCO_SIZE, ts / 70, "run");
+    ctx.restore();
+  }
+
+  function bossLoop(ts) {
+    if (!boss || boss.ended) return;
+    if (!boss.lastTs) boss.lastTs = ts;
+    const dt = Math.min(0.032, (ts - boss.lastTs) / 1000);
+    boss.lastTs = ts;
+    updateBoss(ts, dt);
+    drawBossScene(ts);
+    boss.rafId = requestAnimationFrame(bossLoop);
   }
 
   function trailJump() {
@@ -1400,7 +1664,7 @@
     trail.treatItems = trail.treatItems.filter((t) => t.x > -40 && !t.eaten);
 
     if (trail.distance >= WIN_DISTANCE) {
-      trailEnd(true);
+      enterBossFight();
       return;
     }
 
@@ -1578,10 +1842,53 @@
       }
     });
 
+    document.getElementById("trail-boss-retry-btn").addEventListener("click", () => {
+      document.getElementById("trail-boss-lose").hidden = true;
+      enterBossFight();
+    });
+
+    section.querySelectorAll("[data-boss-ctrl]").forEach((btn) => {
+      const ctrl = btn.dataset.bossCtrl;
+      if (ctrl === "jump") {
+        btn.addEventListener("click", bossJump);
+        return;
+      }
+      const dir = ctrl === "left" ? -1 : 1;
+      const start = (e) => {
+        e.preventDefault();
+        bossMoveDir = dir;
+        btn.classList.add("is-active");
+      };
+      const stop = () => {
+        if (bossMoveDir === dir) bossMoveDir = 0;
+        btn.classList.remove("is-active");
+      };
+      btn.addEventListener("pointerdown", start);
+      btn.addEventListener("pointerup", stop);
+      btn.addEventListener("pointerleave", stop);
+      btn.addEventListener("pointercancel", stop);
+    });
+
     const canvas = document.getElementById("trail-canvas");
-    canvas.addEventListener("pointerdown", () => trailJump());
+    canvas.addEventListener("pointerdown", () => {
+      if (boss && !boss.ended) bossJump();
+      else trailJump();
+    });
 
     document.addEventListener("keydown", (e) => {
+      if (boss && !boss.ended) {
+        if (e.code === "ArrowLeft" || e.code === "KeyA") {
+          e.preventDefault();
+          bossMoveDir = -1;
+        } else if (e.code === "ArrowRight" || e.code === "KeyD") {
+          e.preventDefault();
+          bossMoveDir = 1;
+        } else if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
+          e.preventDefault();
+          if (!e.repeat) bossJump();
+        }
+        return;
+      }
       if (!trail || trail.ended) return;
       if (e.code === "Space" || e.code === "ArrowUp") {
         e.preventDefault();
@@ -1596,6 +1903,11 @@
       }
     });
     document.addEventListener("keyup", (e) => {
+      if (boss && !boss.ended) {
+        if ((e.code === "ArrowLeft" || e.code === "KeyA") && bossMoveDir === -1) bossMoveDir = 0;
+        else if ((e.code === "ArrowRight" || e.code === "KeyD") && bossMoveDir === 1) bossMoveDir = 0;
+        return;
+      }
       if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.code === "ArrowRight") setTrailBoost(false);
     });
   }
