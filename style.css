@@ -992,14 +992,15 @@ button:active {
   transform: translateY(1px);
 }
 
-.boss-controls-single {
-  grid-template-columns: 1fr;
-  justify-items: center;
+.boss-controls-pair {
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .boss-jump-btn {
   width: 100%;
-  max-width: 220px;
   padding: 16px 4px;
   font-size: 1.4rem;
 }

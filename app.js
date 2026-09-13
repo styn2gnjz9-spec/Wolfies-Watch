@@ -789,6 +789,7 @@
   const BOSS_ARENA_MIN_X = 40;
   const BOSS_ARENA_MAX_X = LOGICAL_W - 40;
   const WOLFIE_BOSS_X = 150;
+  const BOSS_HIDE_MS = 650;
 
   const BOSS_STOMP_MSGS = ["Stomp! Right on the noggin'! 🐾", "Bullseye! Marco sees stars! ⭐", "Direct hop! 💥"];
   const BOSS_HIT_MSGS = ["Marco bowls Wolfie right over! 😖", "Ouch — caught from the side! 😵"];
@@ -1288,7 +1289,7 @@
       ended: false,
       lastTs: 0,
       rafId: null,
-      wolfie: { y: GROUND_Y, vy: 0, onGround: true, invulnUntil: 0 },
+      wolfie: { y: GROUND_Y, vy: 0, onGround: true, invulnUntil: 0, hiding: false, hideUntil: 0 },
       marco: {
         x: LOGICAL_W - 120,
         dir: -1,
@@ -1296,6 +1297,7 @@
         flashUntil: 0,
         charging: false,
         chargeUntil: 0,
+        chargeResolved: false,
         telegraphUntil: 0,
         nextChargeAt: performance.now() + 3500,
         defeated: false,
@@ -1309,6 +1311,14 @@
 
   function bossWolfieBox() {
     const w = boss.wolfie;
+    if (w.hiding) {
+      return {
+        x: WOLFIE_BOSS_X - PLAYER_SIZE * 0.32,
+        y: GROUND_Y - PLAYER_SIZE * 0.42,
+        w: PLAYER_SIZE * 0.64,
+        h: PLAYER_SIZE * 0.42,
+      };
+    }
     return {
       x: WOLFIE_BOSS_X - PLAYER_SIZE * 0.32,
       y: w.y - PLAYER_SIZE * 0.82,
@@ -1336,9 +1346,19 @@
 
   function bossJump() {
     if (!boss || boss.ended) return;
-    if (boss.wolfie.onGround) {
-      boss.wolfie.vy = BOSS_JUMP_VELOCITY;
-      boss.wolfie.onGround = false;
+    const w = boss.wolfie;
+    if (w.onGround && !w.hiding) {
+      w.vy = BOSS_JUMP_VELOCITY;
+      w.onGround = false;
+    }
+  }
+
+  function bossHide() {
+    if (!boss || boss.ended) return;
+    const w = boss.wolfie;
+    if (w.onGround && !w.hiding) {
+      w.hiding = true;
+      w.hideUntil = performance.now() + BOSS_HIDE_MS;
     }
   }
 
@@ -1386,14 +1406,15 @@
 
     // telegraph a charge before it happens so it's a fair, dodgeable pattern
     if (!m.charging && !m.telegraphUntil && ts > m.nextChargeAt) {
-      m.telegraphUntil = ts + 550;
+      m.telegraphUntil = ts + 650;
       m.nextChargeAt = ts + 5200 + Math.random() * 2000;
-      showTrailStatus("Marco's winding up — look out! ⚠️");
+      showTrailStatus("Marco's winding up to charge — duck, don't jump! ⚠️");
     }
     if (m.telegraphUntil) {
       if (ts >= m.telegraphUntil) {
         m.telegraphUntil = 0;
         m.charging = true;
+        m.chargeResolved = false;
         m.chargeUntil = ts + 650;
         m.dir = WOLFIE_BOSS_X < m.x ? -1 : 1;
       } else {
@@ -1430,6 +1451,10 @@
       w.onGround = false;
     }
 
+    if (w.hiding && ts >= w.hideUntil) {
+      w.hiding = false;
+    }
+
     if (boss.marco.defeated) {
       if (performance.now() - boss.marco.defeatStart > BOSS_DEFEAT_TOTAL_MS) {
         boss.ended = true;
@@ -1443,17 +1468,31 @@
 
     const wb = bossWolfieBox();
     const mb = bossMarcoBox();
-    if (bossRectsOverlap(wb, mb)) {
-      // Generous, position-based stomp check: airborne with feet in the
-      // upper half of Marco's body counts as a stomp, whether Wolfie is
-      // still rising into it or already falling -- this reads far more
-      // fairly than trying to reconstruct exact fall velocity.
-      const isStomp = !w.onGround && wb.y + wb.h <= mb.y + mb.h * 0.55;
-      if (isStomp) {
-        onBossStomp();
+    if (!bossRectsOverlap(wb, mb)) return;
+
+    if (boss.marco.charging) {
+      // Mid-charge, Marco snaps at head height -- jumping (or just
+      // standing there) gets bitten; only ducking is safe. This is the
+      // one moment where jumping is the wrong answer, so mashing Jump
+      // can't carry the whole fight.
+      if (boss.marco.chargeResolved) return;
+      boss.marco.chargeResolved = true;
+      if (w.hiding) {
+        showTrailStatus("Ducked the charge just in time! 😮‍💨");
       } else {
         onBossHit();
       }
+      return;
+    }
+
+    // Normal pass-by: airborne with feet in the upper half of Marco's
+    // body is a stomp; hiding is always a safe (if unrewarded) dodge;
+    // anything else (standing there) gets bumped.
+    const isStomp = !w.onGround && wb.y + wb.h <= mb.y + mb.h * 0.55;
+    if (isStomp) {
+      onBossStomp();
+    } else if (!w.hiding) {
+      onBossHit();
     }
   }
 
@@ -1499,7 +1538,7 @@
       ctx.save();
       ctx.translate(WOLFIE_BOSS_X, w.y - 2);
       if (boss.marco.x < WOLFIE_BOSS_X) ctx.scale(-1, 1);
-      const pose = !w.onGround ? "jump" : "idle";
+      const pose = w.hiding ? "hide" : !w.onGround ? "jump" : "idle";
       drawTrailDog(ctx, PLAYER_SIZE, WOLFIE_PALETTE, ts / 80, pose);
       ctx.restore();
     }
@@ -1522,6 +1561,15 @@
       const bob = Math.sin(ts / 60) * 4;
       ctx.font = "26px sans-serif";
       ctx.fillText("⚠️", m.x, GROUND_Y - BOSS_MARCO_SIZE * 0.95 + bob);
+    }
+
+    if (m.charging) {
+      ctx.font = "20px sans-serif";
+      ctx.globalAlpha = 0.7;
+      const trail = m.dir > 0 ? -1 : 1;
+      ctx.fillText("💨", m.x + trail * BOSS_MARCO_SIZE * 0.55, GROUND_Y - BOSS_MARCO_SIZE * 0.4);
+      ctx.fillText("💨", m.x + trail * BOSS_MARCO_SIZE * 0.8, GROUND_Y - BOSS_MARCO_SIZE * 0.25);
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -1935,7 +1983,11 @@
     });
 
     section.querySelectorAll("[data-boss-ctrl]").forEach((btn) => {
-      btn.addEventListener("click", bossJump);
+      const ctrl = btn.dataset.bossCtrl;
+      btn.addEventListener("click", () => {
+        if (ctrl === "jump") bossJump();
+        else if (ctrl === "hide") bossHide();
+      });
     });
 
     const canvas = document.getElementById("trail-canvas");
@@ -1949,6 +2001,9 @@
         if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
           e.preventDefault();
           if (!e.repeat) bossJump();
+        } else if (e.code === "ArrowDown" || e.code === "KeyS") {
+          e.preventDefault();
+          if (!e.repeat) bossHide();
         }
         return;
       }
