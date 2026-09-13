@@ -759,7 +759,7 @@
   const LOGICAL_H = 220;
   const GROUND_Y = 175;
   const PLAYER_X = 70;
-  const PLAYER_SIZE = 46;
+  const PLAYER_SIZE = 58;
   const TRIGGER_X = PLAYER_X + PLAYER_SIZE / 2;
 
   const GRAVITY = 0.85;
@@ -1182,21 +1182,27 @@
 
   function pickObstacleKind() {
     const roll = Math.random();
-    if (roll < 0.45) return "cactus";
-    if (roll < 0.8) return "rock";
-    return "bird";
+    if (roll < 0.32) return "cactus";
+    if (roll < 0.56) return "rock";
+    if (roll < 0.72) return "bird";
+    if (roll < 0.88) return "tumbleweed";
+    return "dust";
   }
 
   function spawnTrailObstacle(kind) {
     let ob;
     if (kind === "cactus") {
-      ob = { kind, avoid: "jump", x: LOGICAL_W + 20, h: 40, cy: GROUND_Y - 20, emoji: "🌵" };
+      ob = { kind, avoid: "jump", x: LOGICAL_W + 20, h: 52, cy: GROUND_Y - 26, emoji: "🌵" };
     } else if (kind === "rock") {
-      ob = { kind, avoid: "jump", x: LOGICAL_W + 20, h: 30, cy: GROUND_Y - 15, emoji: "🪨" };
+      ob = { kind, avoid: "jump", x: LOGICAL_W + 20, h: 40, cy: GROUND_Y - 20, emoji: "🪨" };
     } else if (kind === "bird") {
-      ob = { kind, avoid: "hide", x: LOGICAL_W + 20, h: 28, cy: GROUND_Y - 78, emoji: "🐦" };
+      ob = { kind, avoid: "hide", x: LOGICAL_W + 20, h: 36, cy: GROUND_Y - 84, emoji: "🐦" };
+    } else if (kind === "tumbleweed") {
+      ob = { kind, avoid: "jump", x: LOGICAL_W + 20, h: 34, cy: GROUND_Y - 17, spin: 0 };
+    } else if (kind === "dust") {
+      ob = { kind, avoid: "hide", x: LOGICAL_W + 20, h: 56, cy: GROUND_Y - 28, emoji: "🌪️" };
     } else {
-      ob = { kind, avoid: "either", x: LOGICAL_W + 20, h: 46, cy: GROUND_Y - 23 };
+      ob = { kind, avoid: "either", x: LOGICAL_W + 20, h: 58, cy: GROUND_Y - 29 };
     }
     ob.resolved = false;
     trail.obstacles.push(ob);
@@ -1281,6 +1287,7 @@
 
     for (const ob of trail.obstacles) {
       ob.x -= speed;
+      if (ob.kind === "tumbleweed") ob.spin += speed * 0.08;
       if (!ob.resolved && ob.x <= TRIGGER_X) {
         resolveTrailObstacle(ob);
       }
@@ -1324,19 +1331,57 @@
     ctx.restore();
   }
 
+  function drawTrailTumbleweed(ob) {
+    const ctx = trail.ctx;
+    const r = ob.h / 2;
+    ctx.save();
+    ctx.translate(ob.x, ob.cy);
+    ctx.rotate(ob.spin);
+    ctx.strokeStyle = "#8a6a3a";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r, r * 0.5, a, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  const MOUNTAIN_TILE_W = 260;
+
+  function drawTrailMountains(ctx, offsetX, baseY, color, heightScale) {
+    const tilesNeeded = Math.ceil(LOGICAL_W / MOUNTAIN_TILE_W) + 2;
+    ctx.fillStyle = color;
+    for (let i = -1; i < tilesNeeded; i++) {
+      const tx = offsetX + i * MOUNTAIN_TILE_W;
+      ctx.beginPath();
+      ctx.moveTo(tx, baseY);
+      ctx.lineTo(tx, baseY - 55 * heightScale);
+      ctx.lineTo(tx + MOUNTAIN_TILE_W * 0.18, baseY - 95 * heightScale);
+      ctx.lineTo(tx + MOUNTAIN_TILE_W * 0.35, baseY - 62 * heightScale);
+      ctx.lineTo(tx + MOUNTAIN_TILE_W * 0.5, baseY - 110 * heightScale);
+      ctx.lineTo(tx + MOUNTAIN_TILE_W * 0.68, baseY - 68 * heightScale);
+      ctx.lineTo(tx + MOUNTAIN_TILE_W * 0.85, baseY - 90 * heightScale);
+      ctx.lineTo(tx + MOUNTAIN_TILE_W, baseY - 55 * heightScale);
+      ctx.lineTo(tx + MOUNTAIN_TILE_W, baseY);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
   function drawTrail() {
     const ctx = trail.ctx;
     ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
 
-    ctx.font = "26px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.globalAlpha = 0.6;
-    const parX = -(trail.distance * 0.15) % 220;
-    for (let i = -1; i <= Math.ceil(LOGICAL_W / 220) + 1; i++) {
-      ctx.fillText("⛰️", parX + i * 220, 130);
-    }
-    ctx.globalAlpha = 1;
+
+    // two parallax mountain layers, both rooted at the ground line so they
+    // don't float -- far (slow, short, hazy) and near (faster, taller, richer)
+    drawTrailMountains(ctx, -(trail.distance * 0.05) % MOUNTAIN_TILE_W, GROUND_Y, "rgba(150, 118, 98, 0.38)", 0.62);
+    drawTrailMountains(ctx, -(trail.distance * 0.1) % MOUNTAIN_TILE_W - 90, GROUND_Y, "rgba(120, 90, 72, 0.55)", 1);
+
     ctx.font = "26px sans-serif";
     ctx.fillText("☀️", 580, 38);
 
@@ -1359,15 +1404,19 @@
       ctx.stroke();
     }
 
-    ctx.font = "22px sans-serif";
+    ctx.font = "28px sans-serif";
     for (const t of trail.treatItems) {
       if (t.eaten) continue;
-      ctx.fillText("🦴", t.x, GROUND_Y - 14);
+      ctx.fillText("🦴", t.x, GROUND_Y - 16);
     }
 
     for (const ob of trail.obstacles) {
       if (ob.kind === "marco") {
         drawTrailMarco(ob);
+        continue;
+      }
+      if (ob.kind === "tumbleweed") {
+        drawTrailTumbleweed(ob);
         continue;
       }
       ctx.font = `${ob.h}px sans-serif`;
