@@ -801,6 +801,10 @@
     ctx.translate(x, 6);
     ctx.rotate(swingPx * 0.02);
     ctx.fillRect(-w / 2, 0, w, h);
+    ctx.fillStyle = "#160e08";
+    ctx.beginPath();
+    ctx.ellipse(0, h, w / 2 + 1, 2.4, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 
@@ -823,55 +827,106 @@
     const swing = pose === "run" ? Math.sin(runPhase) * 10 : 0;
     const bodyStretch = pose === "jump" ? -4 : 0;
 
+    // back ear peeking out behind the head
+    ctx.fillStyle = palette.dark;
+    ctx.beginPath();
+    ctx.moveTo(7, -19 + bodyStretch);
+    ctx.quadraticCurveTo(3, -28 + bodyStretch, 9, -32 + bodyStretch);
+    ctx.quadraticCurveTo(13, -26 + bodyStretch, 10, -17 + bodyStretch);
+    ctx.closePath();
+    ctx.fill();
+
     // legs (behind body)
     drawTrailLeg(ctx, -12, -swing, palette.dark, 8, 15);
     drawTrailLeg(ctx, 9, swing, palette.dark, 8, 15);
 
-    // tail
+    // tail, curled with a lighter fluffy tip
     ctx.fillStyle = palette.coat;
     ctx.beginPath();
-    ctx.moveTo(-22, -3 + bodyStretch);
-    ctx.quadraticCurveTo(-33, -15 + bodyStretch, -25, -23 + bodyStretch);
-    ctx.quadraticCurveTo(-18, -17 + bodyStretch, -18, -5 + bodyStretch);
+    ctx.moveTo(-19, -2 + bodyStretch);
+    ctx.quadraticCurveTo(-31, -6 + bodyStretch, -31, -18 + bodyStretch);
+    ctx.quadraticCurveTo(-29, -27 + bodyStretch, -20, -24 + bodyStretch);
+    ctx.quadraticCurveTo(-24, -15 + bodyStretch, -15, -5 + bodyStretch);
     ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = palette.light;
+    ctx.beginPath();
+    ctx.ellipse(-27, -21 + bodyStretch, 4.5, 3.6, 0.7, 0, Math.PI * 2);
     ctx.fill();
 
     // body
     ctx.fillStyle = palette.coat;
     ctx.beginPath();
-    ctx.ellipse(-5, -3 + bodyStretch, 21, 12, 0, 0, Math.PI * 2);
+    ctx.ellipse(-5, -2 + bodyStretch, 22, 13, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // chest/belly lighter patch
+    ctx.fillStyle = palette.light;
+    ctx.beginPath();
+    ctx.ellipse(-1, 6 + bodyStretch, 14, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // dark saddle patch on back
     ctx.fillStyle = palette.dark;
     ctx.beginPath();
-    ctx.ellipse(-7, -9 + bodyStretch, 15, 6.5, 0.1, 0, Math.PI * 2);
+    ctx.ellipse(-7, -9 + bodyStretch, 16, 6.5, 0.1, 0, Math.PI * 2);
     ctx.fill();
 
-    // head (dark crown)
+    // skull
     ctx.fillStyle = palette.dark;
     ctx.beginPath();
-    ctx.ellipse(19, -9 + bodyStretch, 12, 11, 0, 0, Math.PI * 2);
+    ctx.ellipse(18, -10 + bodyStretch, 12, 11, -0.08, 0, Math.PI * 2);
     ctx.fill();
 
-    // muzzle
+    // muzzle -- tapered snout instead of a round blob
     ctx.fillStyle = palette.light;
     ctx.beginPath();
-    ctx.ellipse(27, -3 + bodyStretch, 8, 6.5, 0, 0, Math.PI * 2);
+    ctx.moveTo(23, -15 + bodyStretch);
+    ctx.quadraticCurveTo(34, -11 + bodyStretch, 36, -2 + bodyStretch);
+    ctx.quadraticCurveTo(34, 5 + bodyStretch, 23, 4 + bodyStretch);
+    ctx.quadraticCurveTo(19, -5 + bodyStretch, 23, -15 + bodyStretch);
+    ctx.closePath();
     ctx.fill();
 
-    // nose
+    // brow / stop shading
+    ctx.fillStyle = palette.dark;
+    ctx.beginPath();
+    ctx.ellipse(21, -15 + bodyStretch, 4, 2.6, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // nose with a hint of a nostril
     ctx.fillStyle = "#160e08";
     ctx.beginPath();
-    ctx.ellipse(34, -4 + bodyStretch, 2.6, 2.1, 0, 0, Math.PI * 2);
+    ctx.ellipse(35, -3 + bodyStretch, 3, 2.3, 0.2, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = "#3a281c";
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.arc(34, -2.6 + bodyStretch, 0.9, 0.2, Math.PI - 0.2);
+    ctx.stroke();
 
-    // ear
+    // mouth line
+    ctx.strokeStyle = "#160e08";
+    ctx.lineWidth = 1.3;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(31, 1 + bodyStretch);
+    ctx.quadraticCurveTo(27, 4 + bodyStretch, 22, 2 + bodyStretch);
+    ctx.stroke();
+
+    // front ear
     ctx.fillStyle = palette.dark;
     ctx.beginPath();
     ctx.moveTo(13, -18 + bodyStretch);
-    ctx.quadraticCurveTo(9, -29 + bodyStretch, 17, -31 + bodyStretch);
-    ctx.quadraticCurveTo(23, -24 + bodyStretch, 19, -15 + bodyStretch);
+    ctx.quadraticCurveTo(8, -30 + bodyStretch, 17, -34 + bodyStretch);
+    ctx.quadraticCurveTo(24, -27 + bodyStretch, 19, -15 + bodyStretch);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = palette.coat;
+    ctx.beginPath();
+    ctx.moveTo(15, -19 + bodyStretch);
+    ctx.quadraticCurveTo(13, -27 + bodyStretch, 17, -30 + bodyStretch);
+    ctx.quadraticCurveTo(20, -25 + bodyStretch, 18, -17 + bodyStretch);
     ctx.closePath();
     ctx.fill();
 
@@ -884,26 +939,40 @@
     ctx.closePath();
     ctx.fill();
 
-    // eye
+    // eye with a tiny highlight
     ctx.fillStyle = "#160e08";
     ctx.beginPath();
-    ctx.arc(23, -10 + bodyStretch, 1.9, 0, Math.PI * 2);
+    ctx.arc(22, -11 + bodyStretch, 2, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(22.8, -11.8 + bodyStretch, 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // whiskers
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.lineWidth = 0.6;
+    for (const wy of [-3, 0, 3]) {
+      ctx.beginPath();
+      ctx.moveTo(30, wy + bodyStretch);
+      ctx.lineTo(40, wy - 2 + bodyStretch);
+      ctx.stroke();
+    }
 
     // sheriff hat (Wolfie only)
     if (palette.hasHat) {
       ctx.fillStyle = palette.hat;
       ctx.beginPath();
-      ctx.ellipse(16, -29 + bodyStretch, 12.5, 3.2, 0, 0, Math.PI * 2);
+      ctx.ellipse(16, -30 + bodyStretch, 12.5, 3.2, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(9, -30 + bodyStretch);
-      ctx.quadraticCurveTo(12, -41 + bodyStretch, 20, -41 + bodyStretch);
-      ctx.quadraticCurveTo(26, -37 + bodyStretch, 22, -30 + bodyStretch);
+      ctx.moveTo(9, -31 + bodyStretch);
+      ctx.quadraticCurveTo(12, -42 + bodyStretch, 20, -42 + bodyStretch);
+      ctx.quadraticCurveTo(26, -38 + bodyStretch, 22, -31 + bodyStretch);
       ctx.closePath();
       ctx.fill();
       ctx.fillStyle = palette.hatBand;
-      ctx.fillRect(10, -32 + bodyStretch, 12, 2.4);
+      ctx.fillRect(10, -33 + bodyStretch, 12, 2.4);
     }
 
     ctx.restore();
@@ -948,6 +1017,12 @@
     ctx.ellipse(-4, -2 + bodyStretch, 20, 13, 0, 0, Math.PI * 2);
     ctx.fill();
 
+    // lighter belly
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.ellipse(-2, 7 + bodyStretch, 13, 5.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
     // brindle patch
     ctx.fillStyle = coatDark;
     ctx.beginPath();
@@ -960,25 +1035,38 @@
     ctx.ellipse(20, -6 + bodyStretch, 14, 12, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // flat wide muzzle
+    // flat wide muzzle, tapered
     ctx.fillStyle = light;
     ctx.beginPath();
-    ctx.ellipse(30, -1 + bodyStretch, 9, 7.5, 0, 0, Math.PI * 2);
+    ctx.moveTo(26, -9 + bodyStretch);
+    ctx.quadraticCurveTo(37, -4 + bodyStretch, 38, 2 + bodyStretch);
+    ctx.quadraticCurveTo(36, 8 + bodyStretch, 25, 6 + bodyStretch);
+    ctx.quadraticCurveTo(22, -2 + bodyStretch, 26, -9 + bodyStretch);
+    ctx.closePath();
     ctx.fill();
+
+    // forehead wrinkle (grumpy)
+    ctx.strokeStyle = coatDark;
+    ctx.lineWidth = 1.2;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(14, -15 + bodyStretch);
+    ctx.quadraticCurveTo(19, -18 + bodyStretch, 24, -15 + bodyStretch);
+    ctx.stroke();
 
     // underbite tooth
     ctx.fillStyle = "#f2ede2";
     ctx.beginPath();
-    ctx.moveTo(32, 3 + bodyStretch);
-    ctx.lineTo(35, 3 + bodyStretch);
-    ctx.lineTo(33.4, 7 + bodyStretch);
+    ctx.moveTo(32, 5 + bodyStretch);
+    ctx.lineTo(35, 5 + bodyStretch);
+    ctx.lineTo(33.4, 9 + bodyStretch);
     ctx.closePath();
     ctx.fill();
 
     // nose
     ctx.fillStyle = "#160e08";
     ctx.beginPath();
-    ctx.ellipse(37, -3 + bodyStretch, 3, 2.4, 0, 0, Math.PI * 2);
+    ctx.ellipse(37, -1 + bodyStretch, 3, 2.4, 0.15, 0, Math.PI * 2);
     ctx.fill();
 
     // floppy hanging ear (instead of Wolfie's pointy erect ear)
@@ -989,30 +1077,42 @@
     ctx.quadraticCurveTo(19, 1 + bodyStretch, 17, -12 + bodyStretch);
     ctx.closePath();
     ctx.fill();
+    ctx.fillStyle = "#241512";
+    ctx.beginPath();
+    ctx.moveTo(13, -12 + bodyStretch);
+    ctx.quadraticCurveTo(10, -6 + bodyStretch, 13, 0 + bodyStretch);
+    ctx.quadraticCurveTo(16, -3 + bodyStretch, 15, -11 + bodyStretch);
+    ctx.closePath();
+    ctx.fill();
 
     // angry brow
     ctx.strokeStyle = "#160e08";
     ctx.lineWidth = 2;
+    ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(17, -14 + bodyStretch);
     ctx.lineTo(25, -11 + bodyStretch);
     ctx.stroke();
 
-    // eye
+    // eye with a tiny highlight
     ctx.fillStyle = "#160e08";
     ctx.beginPath();
-    ctx.arc(24, -7 + bodyStretch, 1.8, 0, Math.PI * 2);
+    ctx.arc(24, -7 + bodyStretch, 1.9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(24.7, -7.7 + bodyStretch, 0.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // spiked collar
+    // spiked collar (sits at the neck, behind the jaw/muzzle)
     ctx.fillStyle = collar;
-    ctx.fillRect(9, -3 + bodyStretch, 13, 5);
+    ctx.fillRect(1, -1 + bodyStretch, 13, 6);
     ctx.fillStyle = spike;
-    for (const sx of [10, 14.5, 19]) {
+    for (const sx of [2, 6.5, 11]) {
       ctx.beginPath();
-      ctx.moveTo(sx, -3 + bodyStretch);
-      ctx.lineTo(sx + 2, -6.5 + bodyStretch);
-      ctx.lineTo(sx + 4, -3 + bodyStretch);
+      ctx.moveTo(sx, -1 + bodyStretch);
+      ctx.lineTo(sx + 2, -4.5 + bodyStretch);
+      ctx.lineTo(sx + 4, -1 + bodyStretch);
       ctx.closePath();
       ctx.fill();
     }
