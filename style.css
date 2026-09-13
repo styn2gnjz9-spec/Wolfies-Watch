@@ -1007,6 +1007,10 @@ button:active {
   animation: trail-win-fade-in 0.25s ease;
 }
 
+.trail-win-overlay[hidden] {
+  display: none;
+}
+
 .confetti-layer {
   position: absolute;
   inset: 0;

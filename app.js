@@ -751,8 +751,8 @@
   // ---------------------------------------------------------------
   // Sheriff Wolfie's Trail (mini game) — endless side-scrolling runner
   // ---------------------------------------------------------------
-  const TRAIL_GOAL_MILES = 400;
-  const PX_PER_MILE = 40;
+  const TRAIL_GOAL_MILES = 2000;
+  const PX_PER_MILE = 8;
   const WIN_DISTANCE = TRAIL_GOAL_MILES * PX_PER_MILE;
 
   const LOGICAL_W = 640;
@@ -1083,7 +1083,7 @@
     const milesShown = Math.min(TRAIL_GOAL_MILES, Math.floor(trail.distance / PX_PER_MILE));
     document.getElementById("trail-end-message").textContent = won
       ? `🎉 Sheriff Wolfie made it to LA with ${trail.treats} treats in his belly! What a good boy.`
-      : `😴 Sheriff Wolfie's plum tuckered out after ${milesShown} miles and needs a nap back home. Try again?`;
+      : `😴 Sheriff Wolfie's plum tuckered out after ${milesShown.toLocaleString()} miles and needs a nap back home. Try again?`;
     endEl.hidden = false;
 
     if (won) showTrailWinCelebration();
