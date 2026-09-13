@@ -762,9 +762,13 @@
   const PLAYER_SIZE = 58;
   const TRIGGER_X = PLAYER_X + PLAYER_SIZE / 2;
 
-  const GRAVITY = 0.85;
-  const JUMP_VELOCITY = -12.5;
+  const GRAVITY = 0.78;
+  const JUMP_VELOCITY = -14;
   const HIDE_MS = 650;
+  // How far (in px) before/after the trigger line an obstacle still counts
+  // its avoidance -- being in the right state anywhere in that window clears
+  // it, instead of needing to be in that state at one exact instant.
+  const OBSTACLE_HIT_HALF_WIDTH = 26;
   const BASE_SPEED = 2.1;
   const MAX_SPEED = 3.8;
 
@@ -1855,25 +1859,24 @@
 
   function resolveTrailObstacle(ob) {
     ob.resolved = true;
-    const p = trail.player;
+    const cleared = Boolean(ob.cleared);
 
     if (ob.kind === "marco") {
-      const dodged = p.state === "jump" || p.state === "hide";
-      if (dodged) {
+      if (cleared) {
         showTrailStatus(pickRandom(MARCO_DODGE_MSGS));
       } else {
         trail.health = Math.max(0, trail.health - 22);
         showTrailStatus(pickRandom(MARCO_HIT_MSGS));
       }
     } else if (ob.avoid === "jump") {
-      if (p.state === "jump") {
+      if (cleared) {
         showTrailStatus(pickRandom(JUMP_OK_MSGS));
       } else {
         trail.health = Math.max(0, trail.health - 12);
         showTrailStatus(pickRandom(JUMP_FAIL_MSGS));
       }
     } else if (ob.avoid === "hide") {
-      if (p.state === "hide") {
+      if (cleared) {
         showTrailStatus(pickRandom(HIDE_OK_MSGS));
       } else {
         trail.health = Math.max(0, trail.health - 12);
@@ -1909,8 +1912,14 @@
     for (const ob of trail.obstacles) {
       ob.x -= speed;
       if (ob.kind === "tumbleweed") ob.spin += speed * 0.08;
-      if (!ob.resolved && ob.x <= TRIGGER_X) {
-        resolveTrailObstacle(ob);
+      if (!ob.resolved) {
+        if (ob.x <= TRIGGER_X + OBSTACLE_HIT_HALF_WIDTH) {
+          const needed = ob.kind === "marco" ? p.state === "jump" || p.state === "hide" : p.state === ob.avoid;
+          if (needed) ob.cleared = true;
+        }
+        if (ob.x <= TRIGGER_X - OBSTACLE_HIT_HALF_WIDTH) {
+          resolveTrailObstacle(ob);
+        }
       }
     }
     trail.obstacles = trail.obstacles.filter((ob) => ob.x > -60);
